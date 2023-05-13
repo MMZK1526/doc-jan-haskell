@@ -1,0 +1,8 @@
+Build profile: -w ghc-9.2.5 -O1
+In order, the following will be built (use -v for more details):
+ - doc-jan-haskell-0.1.0.0 (exe:doc-jan-haskell) (file src/Main.hs changed)
+Preprocessing executable 'doc-jan-haskell' for doc-jan-haskell-0.1.0.0..
+Building executable 'doc-jan-haskell' for doc-jan-haskell-0.1.0.0..
+[5 of 5] Compiling Main             ( src/Main.hs, /Users/crait/Desktop/doc-jan-haskell/dist-newstyle/build/aarch64-osx/ghc-9.2.5/doc-jan-haskell-0.1.0.0/x/doc-jan-haskell/build/doc-jan-haskell/doc-jan-haskell-tmp/Main.o )
+Linking /Users/crait/Desktop/doc-jan-haskell/dist-newstyle/build/aarch64-osx/ghc-9.2.5/doc-jan-haskell-0.1.0.0/x/doc-jan-haskell/build/doc-jan-haskell/doc-jan-haskell ...
+END
