@@ -10,6 +10,8 @@ These solutions are solely based on my personal responses and by no mean serve a
 
 As a direct consequence of the above, my solutions may use techniques not covered in the course, and may not be the most efficient ones. If you spot any mistakes in my solutions, please feel free to open an issue 😃
 
+I have preserved all the original comments in the test. New comments are marked with `-- >` at the beginning of each line.
+
 ## How to Use
 
 Since it is a not-mini compilation of Haskell code, I use cabal to manage the project.

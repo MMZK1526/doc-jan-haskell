@@ -2,6 +2,15 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE TupleSections #-}
 
+-- > Just as Tony commented, This year's test is indeed one of the hardest
+-- > tests in the history of the course, and I would imagine not doing it too
+-- > well had I taken it. Fortunately, I have been able to learn a lot since my
+-- > first year, and I was quite familiar with the ideas presented in this test.
+-- >
+-- > Some of functions (especially the ones in Part III) are quite tricky, but
+-- > the formulation suits well with RWS monads. In fact, those monads make the
+-- > solution easier as long as one understands how to use them.
+
 module Year2022.SC where
 
 import Control.Monad
