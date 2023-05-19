@@ -173,6 +173,16 @@ tester = runTest do
     isFun e19 ==. False
     isFun e20 ==. False
     isFun e21 ==. False
+  label "Test 'topLevelFunctions'" do
+    topLevelFunctions e4 ==. 1
+    topLevelFunctions e12 ==. 2
+    topLevelFunctions e20 ==. 0
+  label "Test 'unionAll'" do
+     unionAll [[2, 5], [4, 2], [5, 1]] ==. [2, 5, 4, 1]
+  label "Test 'freeVars'" do
+    freeVars e7 ==. ["z"]
+    freeVars e8 ==. ["y", "z"]
+    freeVars e9 ==. ["x"]
   label "Test 'modifyFunctions'" $ modifyFunctions (buildFVMap e1) e1 ==. e1''
   label "Test 'lambdaLift'" do
     lambdaLift e1 .==. e1'
