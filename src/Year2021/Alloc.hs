@@ -8,6 +8,8 @@ import Year2021.Examples
 import Data.Ord
 import Data.Bifunctor
 
+import Control.Monad.Trans.State
+
 ------------------------------------------------------
 --
 -- Part I
@@ -88,9 +90,74 @@ buildIG liveVars = (ns, es)
 -- Part V
 --
 liveVars :: CFG -> [[Id]]
-liveVars 
-  = undefined
+liveVars cfg = buildLV $ replicate (length cfg) []
+  where
+    buildLV curLVs
+      | nextLVs == curLVs = curLVs
+      | otherwise         = buildLV nextLVs
+      where
+        nextLVs                  = zipWith buildLine [0..] cfg
+        buildLine ix ((d, u), s)
+          = u `union` (foldl union [] [curLVs !! next | next <- s] \\ [d])
 
+-- > This implementation is admittedly convoluted :/
+-- >
+-- > Extracting "def" and "use" from each @Statement@ is trivial, however, to
+-- get the successor nodes, we need to know how long each @Block@ is. This is
+-- > accomplished with a @State@ monad that keeps track of the current index.
+-- >
+-- > The real problem occurs when we deal with branching. When the "then" branch
+-- > ends, its successor not the next node (which would be the starting point
+-- > of the "else" branch), but (usually) the node after the "else" branch.
+-- > Things become even trickier when we have nested flow controls. One solution
+-- > to this problem is to always "revisit" the last statement in the "then"
+-- > branch and modify its successor nodes once we have the information.
+-- > However, this is not only inefficient (we need to visit the same node at
+-- > least twice), but also requires taking note of many edge cases, e.g. when
+-- one (or both) of the branches are empty, or if there is nested branchings, or
+-- if the last statement in the branch body is a return statment, etc.
+-- >
+-- > The solution here took a different approach. Instead of returning the list
+-- > of CFG entries for each block, we return a function that takes an index and
+-- > returns a list of entries. When we have successive blocks, we take the
+-- > current index and pass it to the function of the previous block. In this
+-- > way, we can easily modify the successor nodes of the previous block.
+-- >
+-- > The approach is arguably harder to understand, but once you get it, it
+-- > handles all the edge cases automatically.
 buildCFG :: Function -> CFG
-buildCFG 
-  = undefined
+buildCFG (_, _, stmts) = flip evalState 0 $ do
+  builder <- build stmts
+  builder <$> get
+  where
+    getVars                  = nub . getVars'
+    getVars' (Const _)       = []
+    getVars' (Var x)         = [x]
+    getVars' (Apply _ e1 e2) = getVars e1 ++ getVars e2
+    build []                 = pure $ const []
+    build [stmt]             = buildOne stmt
+    build (stmt : stmts)     = do
+      cur  <- buildOne stmt
+      ix   <- get
+      rest <- build stmts
+      pure $ \ix' -> cur ix ++ rest ix'
+    buildOne stmt           = do
+      ix <- get
+      let next = ix + 1
+      put next
+      case stmt of
+        Assign v exp -> pure $ case v of
+          "return" -> const [((v, getVars exp), [])]
+          _        -> \ix' -> [((v, getVars exp), [ix'])]
+        If exp b b'  -> do
+          builder  <- build b
+          middle   <- get
+          builder' <- build b'
+          let builderExp ix' = (if null b then ix' else next)
+                             : [if null b' then ix' else middle]
+          pure $ \ix' -> (("_", getVars exp), nub $ builderExp ix')
+                       : builder ix' ++ builder' ix'
+        While exp b  -> do
+          builder <- build b
+          pure $ \ix' -> (("_", getVars exp), nub $ ix' : [next | not $ null b])
+               : builder ix
