@@ -13,6 +13,9 @@ library
     -- import:           warnings
     exposed-modules:
         Test,
+        Year2021.Alloc,
+        Year2021.Examples,
+        Year2021.Types,
         Year2022.Examples,
         Year2022.SC,
         Year2022.Types,
