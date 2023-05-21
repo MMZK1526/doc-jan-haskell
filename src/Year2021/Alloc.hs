@@ -1,14 +1,28 @@
 module Year2021.Alloc where
 
+-- > This is the test I took when I was in my first year. I remember that I
+-- > spent way too long on Part V, trying to find a way up and over, but I was
+-- > not able to finish it, and it wasted me precious time that I could have
+-- > spent on reviewing other parts.
+-- >
+-- > In my second year, I implemented a similar graph colouring algorithm for
+-- > the WACC compiler project. Therefore, this is my third time visiting this
+-- > test.
+-- >
+-- > While the assessed sections are generally straighforward, Part V is
+-- > arguably the most difficult part across all tests. I spent a lot of time
+-- > trying to find a neat one-pass solution for "buildCFG", and while I did
+-- > manage to come up with one, I believe there must be solutions more elegant.
+
 import Data.Maybe
 import Data.List
 
 import Year2021.Types
 import Year2021.Examples
-import Data.Ord
-import Data.Bifunctor
 
 import Control.Monad.Trans.State
+import Data.Bifunctor
+import Data.Ord
 
 ------------------------------------------------------
 --
@@ -90,16 +104,19 @@ buildIG liveVars = (ns, es)
 -- Part V
 --
 liveVars :: CFG -> [[Id]]
+-- > Verbatim translation of the algorithm. Note that the the union is performed
+-- > AFTER the difference, which confused me more than once.
 liveVars cfg = buildLV $ replicate (length cfg) []
   where
     buildLV curLVs
       | nextLVs == curLVs = curLVs
       | otherwise         = buildLV nextLVs
       where
-        nextLVs                  = zipWith buildLine [0..] cfg
+        nextLVs = zipWith buildLine [0..] cfg
         buildLine ix ((d, u), s)
           = u `union` (foldl union [] [curLVs !! next | next <- s] \\ [d])
 
+buildCFG :: Function -> CFG
 -- > This implementation is admittedly convoluted :/
 -- >
 -- > Extracting "def" and "use" from each @Statement@ is trivial, however, to
@@ -125,7 +142,6 @@ liveVars cfg = buildLV $ replicate (length cfg) []
 -- >
 -- > The approach is arguably harder to understand, but once you get it, it
 -- > handles all the edge cases automatically.
-buildCFG :: Function -> CFG
 buildCFG (_, _, stmts) = flip evalState 0 $ do
   builder <- build stmts
   builder <$> get
@@ -160,4 +176,4 @@ buildCFG (_, _, stmts) = flip evalState 0 $ do
         While exp b  -> do
           builder <- build b
           pure $ \ix' -> (("_", getVars exp), nub $ ix' : [next | not $ null b])
-               : builder ix
+                       : builder ix
