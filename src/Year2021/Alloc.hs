@@ -1,3 +1,5 @@
+{-# LANGUAGE BlockArguments #-}
+
 module Year2021.Alloc where
 
 -- > This is the test I took when I was in my first year. I remember that I
@@ -23,6 +25,7 @@ import Year2021.Examples
 import Control.Monad.Trans.State
 import Data.Bifunctor
 import Data.Ord
+import Test
 
 ------------------------------------------------------
 --
@@ -60,7 +63,10 @@ colourGraph k g       = (n, c) : cMap'
 -- Part III
 --
 buildIdMap :: Colouring Id -> IdMap
-buildIdMap = (("return", "return") :) . map (second (('R' :) . show))
+buildIdMap = (("return", "return") :) . map toReg
+  where
+    toReg (v, 0) = (v, v)
+    toReg (v, c) = (v, "R" ++ show c)
 
 buildArgAssignments :: [Id] -> IdMap -> [Statement]
 buildArgAssignments xs idMap = map (\x -> Assign (lookUp x idMap) (Var x)) xs
@@ -76,8 +82,10 @@ renameExp (Apply op e1 e2) idMap
 renameBlock :: Block -> IdMap -> Block
 -- Pre: A precondition is that every variable referenced in 
 -- the block is in the idMap. 
-renameBlock b idMap = map renameStatement b
+renameBlock b idMap = filter shapeFilter $ map renameStatement b
   where
+    shapeFilter (Assign x (Var y)) = x /= y
+    shapeFilter _                  = True
     renameStatement (Assign x e)
       = Assign (lookUp x idMap) (renameExp e idMap)
     renameStatement (If e b1 b2)
@@ -177,3 +185,45 @@ buildCFG (_, _, stmts) = flip evalState 0 $ do
           builder <- build b
           pure $ \ix' -> (("_", getVars exp), nub $ ix' : [next | not $ null b])
                        : builder ix
+
+---------------------------------------------------------
+-- Test & Helpers
+
+tester :: IO ()
+tester = runTest do
+  label "Test 'count'" do
+    count 'a' "b" ==. 0
+    count 3 [2,4,1,3,2,3,3] ==. 3
+  label "Test 'degrees'" do
+     degrees ([1], []) ==. [(1, 0)]
+     degrees fig1Left ==. [(1, 2), (2, 2), (3, 2), (4, 2)]
+  label "Test 'neighbours'" do
+    neighbours 1 ([1], []) ==. []
+    sort (neighbours 2 fig1Left) ==. [1, 4]
+  label "Test 'removeNode'" do
+    removeNode "i" factIG ==. (["n", "prod"], [("n", "prod")])
+    removeNode "prod" factIG ==. (["i","n"],[])
+  label "Test 'colourGraph" do
+    colourGraph 2 fig1Middle ==. [(2, 2), (1, 0), (3, 2), (4, 1)]
+    colourGraph 2 fig3IG ==. [("a", 0), ("b", 0), ("c", 0), ("d", 2), ("n", 1)]
+    colourGraph 3 fig3IG ==. [("a", 3), ("b", 0), ("c", 3), ("d", 2), ("n", 1)]
+  label "Test 'buildIdMap'" do
+    buildIdMap factColouring ==. [("return", "return"), ("i", "R2"), ("n", "R2"), ("prod", "R1")]
+    buildIdMap fig3Colouring ==. [("return", "return"), ("a", "R3"), ("b", "b"), ("c", "R3"), ("d", "R2"), ("n", "R1")]
+  label "Test 'buildArgAssignments'" do
+    buildArgAssignments ["x","y"] idMap1 ==. [Assign "R6" (Var "x"), Assign "R1" (Var "y")]
+  label "Test 'renameExp'" do
+    renameExp e1 idMap1 ==. Apply Add (Var "a") (Var "R1")
+    renameExp e2 idMap1 ==. Apply Mul (Apply Add (Var "R6") (Const 2)) (Var "R1")
+  label "Test 'renameFun'" do
+    renameFun fact factIdMap ==. factTransformed
+    renameFun fig3 fig3IdMap ==. fig3Transformed
+  label "Test 'buildIG'" do
+    sortGraph (buildIG factLiveVars) ==. factIG
+    sortGraph (buildIG fig3LiveVars) ==. fig3IG
+  label "Test 'liveVars'" do
+    map sort (liveVars factCFG) ==. factLiveVars
+    map sort (liveVars fig3CFG) ==. fig3LiveVars
+  label "Test 'buildCFG'" do
+    sortCFG (buildCFG fact) ==. factCFG
+    sortCFG (buildCFG fig3) ==. fig3CFG
