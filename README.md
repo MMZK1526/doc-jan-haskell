@@ -24,4 +24,3 @@ the tests. You can then load the modules for each year according to the followin
 | 2022 | `:m Test Year2022.Examples Year2022.SC Year2022.Types` |
 | 2021 | `:m Test Year2021.Alloc Year2021.Examples Year2021.Types` |
 
-Apart from the functions as per the specifications, in each year's test (right now only 2022), I also introduced a `tester` function that runs a series of tests on the functions.
