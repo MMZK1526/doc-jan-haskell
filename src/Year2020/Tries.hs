@@ -1,4 +1,13 @@
+{-# LANGUAGE BlockArguments #-}
+
 module Year2020.Tries where
+
+-- > This year is pretty straighforward. However, I do remember that I struggled
+-- > a lot with Part III when I first attempted it in my first year.
+-- >
+-- > This time it is mostly simple, especially because I have more understanding
+-- > about tries and bit manipulations. I could imagin these concepts being
+-- > not very apparent for students who have not seen them before.
 
 import Data.List hiding (insert)
 import Data.Bits
@@ -6,6 +15,8 @@ import Data.Bits
 import Year2020.Types
 import Year2020.HashFunctions
 import Year2020.Examples
+
+import Test
 
 --------------------------------------------------------------------
 -- Part I
@@ -46,7 +57,7 @@ sumTrie :: (Int -> Int) -> ([Int] -> Int) -> Trie -> Int
 sumTrie _ r (Leaf vs)   = r vs
 sumTrie f r (Node _ ns) = sum (map sumSubNode ns)
   where
-    sumSubNode (Term v)   = f v
+    sumSubNode (Term v)    = f v
     sumSubNode (SubTrie t) = sumTrie f r t
 
 --
@@ -85,7 +96,7 @@ insert f d b v t = go 0 v t
   where
     go' l v t             = SubTrie $ go l v t
     go _ v (Leaf vs)
-      | v `elem` vs = Leaf $ sort vs
+      | v `elem` vs = Leaf $ sort vs -- Sort not necessary; just for tests
       | otherwise   = Leaf $ sort (v : vs)
     go l v _ | l >= d - 1 = Leaf [v]
     go l v (Node bv ns)
@@ -101,3 +112,39 @@ insert f d b v t = go 0 v t
 
 buildTrie :: HashFun -> Int -> Int -> [Int] -> Trie
 buildTrie f d b = foldl' (flip $ insert f d b) empty
+
+---------------------------------------------------------
+-- Test & Helpers
+
+tester :: IO ()
+tester = runTest do
+  label "Test 'countOnes'" do
+    countOnes 0 ==. 0
+    countOnes 65219 ==. 11
+  label "Test 'countOneFrom'" do
+    countOnesFrom 0 88 ==. 0
+    countOnesFrom 3 15 ==. 3
+  label "Test 'getIndex'" do
+    getIndex 53767 0 4 ==. 7
+    getIndex 53767 3 4 ==. 13
+    getIndex  53767 1 8 ==. 210
+  label "Test 'replace" do
+    replace 0 "trie" 'b' ==. "brie"
+    replace 3 "trie" 'p' ==. "trip"
+  label "Test 'insertAt'" do
+    insertAt 3 'p' "trie" ==. "tripe"
+    insertAt 4 's' "trie" ==. "tries"
+  label "Test 'sumTrie'" do
+    sumTrie (const 1) length empty ==. 0
+    trieSize empty ==. 0
+    sumTrie (const 1) (const 1) figure ==. 4
+    binCount figure ==. 4
+    meanBinSize figure ==. 1.25
+    meanBinSize figureHashed ==. 1.0
+  label "Test 'member'" do
+    member 12 12 figure 4 ==. False
+    member 73 73 figure 4 ==. True
+    member 206 (hash 206) figureHashed 4 ==. True
+  label "Test 'buildTrie'" do
+    buildTrie id 3 4 [73, 206, 729, 1830, 2521] ==. figure
+    buildTrie hash 3 4 [73, 206, 729, 1830, 2521] ==. figureHashed
