@@ -1,5 +1,7 @@
 module Year2019.SOL where
 
+import Control.Monad
+import Control.Monad.Trans.Reader
 import Data.List
 import Data.Maybe
 
@@ -36,7 +38,7 @@ vars (Or f f')  = sort . nub $ vars f ++ vars f'
 
 -- 1 mark
 idMap :: Formula -> IdMap
-idMap fml = zip (vars fml) [1..]
+idMap f = zip (vars f) [1..]
 
 --------------------------------------------------------------------------
 -- Part II
@@ -54,18 +56,33 @@ distribute a b
 
 -- 4 marks
 toNNF :: Formula -> NNF
-toNNF 
-  = undefined
+toNNF (And f f')       = And (toNNF f) (toNNF f')
+toNNF (Or f f')        = Or (toNNF f) (toNNF f')
+toNNF (Not (And f f')) = Or (toNNF (Not f)) (toNNF (Not f'))
+toNNF (Not (Or f f'))  = And (toNNF (Not f)) (toNNF (Not f'))
+toNNF (Not (Not f))    = toNNF f
+toNNF f                = f
 
 -- 3 marks
 toCNF :: Formula -> CNF
-toCNF 
-  = undefined
+toCNF = toCNF' . toNNF
+  where
+    toCNF' (And f f') = And (toCNF' f) (toCNF' f')
+    toCNF' (Or f f')  = distribute (toCNF' f) (toCNF' f')
+    toCNF' f          = f
 
 -- 4 marks
 flatten :: CNF -> CNFRep
-flatten 
-  = undefined
+flatten f = (`runReader` idMap f) (flattenAnd f)
+  where
+    flattenVar (Var v)    = lookUp v <$> ask
+    flattenVar (Not f)    = negate <$> flattenVar f
+    flattenOr (Or f f')   = liftM2 (++) (flattenOr f) (flattenOr f')
+    flattenOr f           = pure <$> flattenVar f
+    flattenAnd (And f f') = liftM2 (++) (flattenAnd f) (flattenAnd f')
+    flattenAnd f          = pure <$> flattenOr f
+
+
 
 --------------------------------------------------------------------------
 -- Part III
