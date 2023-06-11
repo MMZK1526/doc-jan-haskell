@@ -13,6 +13,9 @@ library
     -- import:           warnings
     exposed-modules:
         Test,
+        Year2019.SOL,
+        Year2019.TestData,
+        Year2019.Types,
         Year2020.Examples,
         Year2020.HashFunctions,
         Year2020.Tries,
