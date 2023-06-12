@@ -139,8 +139,8 @@ buildCFG :: Function -> CFG
 -- > branch and modify its successor nodes once we have the information.
 -- > However, this is not only inefficient (we need to visit the same node at
 -- > least twice), but also requires taking note of many edge cases, e.g. when
--- one (or both) of the branches are empty, or if there is nested branchings, or
--- if the last statement in the branch body is a return statment, etc.
+-- > one (or both) of the branches are empty, or if there is nested branchings,
+-- > or if the last statement in the branch body is a return statment, etc.
 -- >
 -- > The solution here took a different approach. Instead of returning the list
 -- > of CFG entries for each block, we return a function that takes an index and
