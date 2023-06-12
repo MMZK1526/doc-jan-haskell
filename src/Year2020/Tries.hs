@@ -6,7 +6,7 @@ module Year2020.Tries where
 -- > a lot with Part III when I first attempted it in my first year.
 -- >
 -- > This time it is mostly simple, especially because I have more understanding
--- > about tries and bit manipulations. I could imagin these concepts being
+-- > about tries and bit manipulations. I could imagine these concepts being
 -- > not very apparent for students who have not seen them before.
 
 import Data.List hiding (insert)
