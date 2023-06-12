@@ -34,6 +34,7 @@ actual ==. expected = unless (actual == expected) $ do
           tell [name ++ " failed:"
                , "  Expected:\n" ++ show expected
                , "  Actual:\n" ++ show actual ++ "\n" ]
+infix 1 ==.
 
 label :: String -> Test -> Test
 label name test = do

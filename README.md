@@ -4,7 +4,7 @@
 
 This repo contains my solutions to the past-year Imperial College Department of Computing Haskell January Tests. The questions are written by Professor Tony Field and can be found [here](http://wp.doc.ic.ac.uk/ajf/haskell-tests/).
 
-Currently, I have implemented the solutions only for the tests since 2020. I will add the solutions for the rest later on.
+Currently, I have implemented the solutions for the tests since 2019. I will add the solutions for the rest later on.
 
 These solutions are solely based on my personal responses and by no mean serve as the official solutions to the tests. While it is welcomed to discuss and share the solutions (**don't forget to refer Tony's work!**), I am not responsible for any potential damages (*is that even possible?*) caused by using these solutions.
 
@@ -24,3 +24,4 @@ the tests. You can then load the modules for each year according to the followin
 | 2022 | `:m Test Year2022.Examples Year2022.SC Year2022.Types` |
 | 2021 | `:m Test Year2021.Alloc Year2021.Examples Year2021.Types` |
 | 2020 | `:m Test Year2020.Examples Year2020.HashFunctions Year2020.Tries Year2020.Types` |
+| 2019 | `:m Year2019.SOL Year2019.TestData Year2019.Types` |

@@ -1,3 +1,5 @@
+{-# LANGUAGE BlockArguments #-}
+
 module Year2019.SOL where
 
 import Control.Monad
@@ -8,6 +10,8 @@ import Data.Tuple
 
 import Year2019.Types
 import Year2019.TestData
+
+import Test
 
 printF :: Formula -> IO()
 printF
@@ -120,7 +124,8 @@ dp cnfRep
 
 -- Bonus 2 marks
 allSat :: Formula -> [[(Id, Bool)]]
-allSat f = map sort $ concatMap (complete . map toAsgn) (dp . flatten $ toCNF f)
+allSat f = sort . map sort
+         $ concatMap (complete . map toAsgn) (dp . flatten $ toCNF f)
   where
     toAsgn x
       | x > 0     = (lookUp x idToV, True)
@@ -129,3 +134,44 @@ allSat f = map sort $ concatMap (complete . map toAsgn) (dp . flatten $ toCNF f)
     complete asgns = foldM (\a v -> [(v, True) : a, (v, False) : a])
                            asgns
                            (vars f \\ map fst asgns)
+
+---------------------------------------------------------
+-- Test & Helpers
+
+tester :: IO ()
+tester = runTest do
+  label "Test 'lookUp'" do
+    lookUp 3 [(2, 1), (3, 8)] ==. 8
+  label "Test 'vars'" do
+    vars f1 ==. ["a"]
+    vars cnf3 ==. ["a", "b", "c", "d", "e", "f", "g"]
+  label "Test 'idMap'" do
+    idMap f1 ==. [("a", 1)]
+    idMap cnf3 ==. [("a", 1), ("b", 2), ("c", 3), ("d", 4), ("e", 5), ("f", 6), ("g", 7)]
+  label "Test 'toNNF'" do
+    toNNF f1 ==. Var "a"
+    toNNF f6 ==. And (Not (Var "b")) (Or (Not (Var "a")) (Var "c"))
+    toNNF f8 ==. Or (And (Var "a") (And (Not (Var "b")) (Not (Var "c")))) (Not (Var "d"))
+  label "Test 'toCNF'" do
+    toCNF f4 ==. Or (Var "a") (Var "b")
+    toCNF f6 ==. And (Not (Var "b")) (Or (Not (Var "a")) (Var "c"))
+    toCNF f8 ==. And (Or (Var "a") (Not (Var "d"))) (And (Or (Not (Var "b")) (Not (Var "d"))) (Or (Not (Var "c")) (Not (Var "d"))))
+  label "Test 'flatten'" do
+    flatten c3 ==. [[1], [2]]
+    flatten c4 ==. [[1, 2]]
+    flatten cnf3 ==. [[-3, -7], [2, 3, 5], [1, -2], [1, -5], [-1, -4], [3, 4, 6], [-1, -6], [7]]
+  label "Test 'propUnits'" do
+    propUnits [] ==. ([], [])
+    propUnits cnf1Rep ==. ([[1, 2, 3], [1, 2, -3], [1, -2, 3], [1, -2, -3], [-1, 2, 3], [-1, 2, -3], [-1, -2, 3]], [])
+    propUnits cnf2Rep ==. ([[2, 5], [3, -2], [3, -5], [-3, -7], [7, 6], [-3, 6]], [4, -1])
+  label "Test 'dp'" do
+    sortOn abs <$> dp cnf1Rep ==. [[1, 2, 3]]
+    sortOn abs <$> dp cnf2Rep ==. [[-1, 2, 3, 4, 6, -7], [-1, -2, 3, 4, 5, 6, -7]]
+  label "Test 'allSat'" do
+    allSat cnf1 ==. [[("a", True), ("b", True), ("c", True)]]
+    allSat cnf2 ==. [ [("a", False), ("b", False), ("c", True), ("d", True), ("e", True), ("f", True), ("g", False)]
+                    , [("a", False), ("b", True), ("c", True), ("d", True), ("e", False), ("f", True), ("g", False)]
+                    , [("a", False), ("b", True), ("c", True), ("d", True), ("e", True), ("f", True), ("g", False)] ]
+    allSat cnf3 ==. []
+    allSat cnf4 ==. [ [("a", False), ("b", True), ("c", True), ("d", False)]
+                    , [("a", True), ("b", False), ("c", False), ("d", True)] ]
