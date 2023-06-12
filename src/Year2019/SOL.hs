@@ -2,6 +2,23 @@
 
 module Year2019.SOL where
 
+-- > This year's test is overall easy. The interesting part is that I have
+-- > studied the DP(LL) algorithm in the second year module of 50009, and
+-- > a (simplified) implementation would be even more straightforward for me.
+-- >
+-- > SAT problem is NP-hard, thus we do not know any "efficient" algorithm for
+-- > it. This algorithm has a worst case of O(2^n), but in practice the worst
+-- > case is often avoided, especially if you have a good heuristic for choosing
+-- > which literal to guess next.
+-- >
+-- > Note that in practice, the DP algorithm itself is not used for SAT solving
+-- > (although the foundational idea remains), and we are usually just
+-- > interested in one solution rather than all (which is an even harder
+-- > problem). Furthermore, instead of translating the original formula into
+-- > CNF (which is by itself exponential), we could use the Tseitin
+-- > transformation to create a different CNF formula that is equisatisfiable to
+-- > the original one. This is what modern SAT solvers do.
+
 import Control.Monad
 import Control.Monad.Trans.Reader
 import Control.Monad.Trans.State
@@ -78,6 +95,7 @@ toCNF = toCNF' . toNNF
 
 -- 4 marks
 flatten :: CNF -> CNFRep
+-- > The idea is very similar to parser combinators :)
 flatten f = runReader (flattenAnd f) (idMap f)
   where
     flattenAnd (And f f') = liftM2 (++) (flattenAnd f) (flattenAnd f')
@@ -93,6 +111,7 @@ flatten f = runReader (flattenAnd f) (idMap f)
 
 -- 5 marks
 propUnits :: CNFRep -> (CNFRep, [Int])
+-- > The "State" here arguably complicates things :/
 propUnits = swap . runState worker
   where
     findSingleton []         = Nothing
@@ -132,8 +151,7 @@ allSat f = sort . map sort
       | otherwise = (lookUp (-x) idToV, False)
     idToV          = swap <$> idMap f
     complete asgns = foldM (\a v -> [(v, True) : a, (v, False) : a])
-                           asgns
-                           (vars f \\ map fst asgns)
+                           asgns (vars f \\ map fst asgns)
 
 ---------------------------------------------------------
 -- Test & Helpers
