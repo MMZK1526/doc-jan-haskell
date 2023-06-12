@@ -2,7 +2,7 @@
 
 module Year2020.Tries where
 
--- > This year is pretty straighforward. However, I do remember that I struggled
+-- > This year is pretty straightforward. However, I do remember that I struggled
 -- > a lot with Part III when I first attempted it in my first year.
 -- >
 -- > This time it is mostly simple, especially because I have more understanding
