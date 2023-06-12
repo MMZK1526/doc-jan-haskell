@@ -16,8 +16,11 @@ I have preserved all the original comments in the test. New comments are marked 
 
 Since it is a not-mini compilation of Haskell code, I use cabal to manage the project.
 
-Run `cabal repl` in the root directory, it will open up a GHCi REPL that already loads the files for
-the tests. You can then load the modules for each year according to the following table to explore and test the functions. Note that simply running `ghci` and load the modules manually may not work because of the dependencies.
+Run `cabal repl` in the root directory, it will open up a GHCi REPL that already loads the files for the tests. You can then load the modules for each year according to the following table to explore and test the functions. Note that simply running `ghci` and load the modules manually may not work because of the dependencies.
+
+Otherwise if you have not installed `cabal`, you can just copy the solution of any given year into a standalone Haskell file (remember to remove the `Year2XXX.` prefix in the imports as well as the `tester` function). It should compile.
+
+If there's any issue or doubt on running the solutions, you are more than welcomed to drop an issue or contact me directly, and I will do my best to assist.
 
 | Year | Module Name |
 | ---- | ----------- |
