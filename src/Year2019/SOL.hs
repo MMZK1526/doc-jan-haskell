@@ -4,7 +4,6 @@ import Control.Monad
 import Control.Monad.Trans.Reader
 import Control.Monad.Trans.State
 import Data.List
-import Data.Maybe
 import Data.Tuple
 
 import Year2019.Types
@@ -121,5 +120,12 @@ dp cnfRep
 
 -- Bonus 2 marks
 allSat :: Formula -> [[(Id, Bool)]]
-allSat
-  = undefined
+allSat f = map sort $ concatMap (complete . map toAsgn) (dp . flatten $ toCNF f)
+  where
+    toAsgn x
+      | x > 0     = (lookUp x idToV, True)
+      | otherwise = (lookUp (-x) idToV, False)
+    idToV          = swap <$> idMap f
+    complete asgns = foldM (\a v -> [(v, True) : a, (v, False) : a])
+                           asgns
+                           (vars f \\ map fst asgns)
