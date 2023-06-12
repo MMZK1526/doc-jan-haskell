@@ -2,8 +2,10 @@ module Year2019.SOL where
 
 import Control.Monad
 import Control.Monad.Trans.Reader
+import Control.Monad.Trans.State
 import Data.List
 import Data.Maybe
+import Data.Tuple
 
 import Year2019.Types
 import Year2019.TestData
@@ -73,15 +75,14 @@ toCNF = toCNF' . toNNF
 
 -- 4 marks
 flatten :: CNF -> CNFRep
-flatten f = (`runReader` idMap f) (flattenAnd f)
+flatten f = runReader (flattenAnd f) (idMap f)
   where
-    flattenVar (Var v)    = lookUp v <$> ask
-    flattenVar (Not f)    = negate <$> flattenVar f
-    flattenOr (Or f f')   = liftM2 (++) (flattenOr f) (flattenOr f')
-    flattenOr f           = pure <$> flattenVar f
     flattenAnd (And f f') = liftM2 (++) (flattenAnd f) (flattenAnd f')
     flattenAnd f          = pure <$> flattenOr f
-
+    flattenOr (Or f f')   = liftM2 (++) (flattenOr f) (flattenOr f')
+    flattenOr f           = pure <$> flattenVar f
+    flattenVar (Var v)    = lookUp v <$> ask
+    flattenVar (Not f)    = negate <$> flattenVar f
 
 
 --------------------------------------------------------------------------
@@ -89,13 +90,31 @@ flatten f = (`runReader` idMap f) (flattenAnd f)
 
 -- 5 marks
 propUnits :: CNFRep -> (CNFRep, [Int])
-propUnits 
-  = undefined
+propUnits = swap . runState worker
+  where
+    findSingleton []         = Nothing
+    findSingleton ([x] : xs) = Just x
+    findSingleton (_ : xs)   = findSingleton xs
+    worker = do
+      cnf <- get
+      case findSingleton cnf of
+        Nothing -> pure []
+        Just x  -> do
+          modify (map (\\ [-x]) . filter (notElem x))
+          (x :) <$> worker
 
 -- 4 marks
 dp :: CNFRep -> [[Int]]
-dp 
-  = undefined
+dp cnfRep
+  | any null cnfRep' = []
+  | otherwise        = case cnfRep' of
+    []            -> [asgns]
+    ((x : _) : _) -> map ((x : asgns) ++) (dp (set x))
+                  ++ map ((-x : asgns) ++) (dp (set (-x)))
+  where
+    (cnfRep', asgns) = propUnits cnfRep
+    set x            = map (\\ [-x]) $ filter (notElem x) cnfRep'
+
 
 --------------------------------------------------------------------------
 -- Part IV
