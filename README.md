@@ -24,4 +24,4 @@ the tests. You can then load the modules for each year according to the followin
 | 2022 | `:m Test Year2022.Examples Year2022.SC Year2022.Types` |
 | 2021 | `:m Test Year2021.Alloc Year2021.Examples Year2021.Types` |
 | 2020 | `:m Test Year2020.Examples Year2020.HashFunctions Year2020.Tries Year2020.Types` |
-| 2019 | `:m Year2019.SOL Year2019.TestData Year2019.Types` |
+| 2019 | `:m Test Year2019.SOL Year2019.TestData Year2019.Types` |
