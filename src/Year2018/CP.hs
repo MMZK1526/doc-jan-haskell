@@ -3,6 +3,10 @@ module Year2018.CP where
 import Data.Maybe
 import Data.List
 
+import Control.Monad
+import qualified Control.Monad.Trans.State as S
+import Data.Tuple
+
 type Id = String
 
 type Function = (Id, [Id], Block)
@@ -83,23 +87,52 @@ applyPropagate (name, args, body)
 
 foldConst :: Exp -> Exp
 -- Pre: the expression is in SSA form
-foldConst 
-  = undefined
+foldConst (Phi e e')      = case (foldConst e, foldConst e') of
+  (Const i, Const i') -> Const i
+  (e, e')             -> Phi e e'
+foldConst (Apply op e e') = case (op, foldConst e, foldConst e') of
+  (Add, e, Const 0)      -> e
+  (Add, Const 0, e)      -> e
+  (_, Const i, Const i') -> Const (apply op i i')
+  (_, e, e')             -> Apply op e e'
+foldConst e               = e
 
 sub :: Id -> Int -> Exp -> Exp
 -- Pre: the expression is in SSA form
-sub 
-  = undefined
+sub v i e = foldConst $ sub' e
+  where
+    sub' (Var v') | v == v' = Const i
+    sub' (Apply op e e')    = Apply op (sub' e) (sub' e')
+    sub' (Phi e e')         = Phi (sub' e) (sub' e')
+    sub' e                  = e
 
 -- Use (by uncommenting) any of the following, as you see fit...
 -- type Worklist = [(Id, Int)]
 -- scan :: Id -> Int -> Block -> (Worklist, Block)
--- scan :: (Exp -> Exp) -> Block -> (Exp -> Exp, Block)
- 
+scan :: (Exp -> Exp) -> Block -> (Exp -> Exp, Block)
+scan subFun b = swap $ S.runState (modifyBlock $ subBlock subFun b) subFun
+  where
+    subBlock                = map . subStmt
+    subStmt f (Assign v e)  = Assign v (f e)
+    subStmt f (If e b b')   = If (f e) (subBlock f b) (subBlock f b')
+    subStmt f (DoWhile b e) = DoWhile (subBlock f b) (f e)
+    modifyBlock             = fmap concat . mapM modifyStmt
+    modifyStmt b            = case b of
+      Assign v e  -> case e of
+        Const i -> [Assign v (Const i) | v == "$return"] <$ S.modify (sub v i .)
+        _       -> pure [Assign v e]
+      If e b b'   -> pure <$> liftM2 (If e) (modifyBlock b) (modifyBlock b')
+      DoWhile b e -> pure <$> liftM2 DoWhile (modifyBlock b) (pure e)
+
 propagateConstants :: Block -> Block
 -- Pre: the block is in SSA form
-propagateConstants 
-  = undefined
+propagateConstants b = iter (scan foldConst b)
+  where
+    iter (f, b)
+      | b' == b   = b
+      | otherwise = iter (scan f' b')
+      where
+        (f', b') = scan f b
 
 ------------------------------------------------------------------------
 -- Given functions for testing unPhi...
