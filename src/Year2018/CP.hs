@@ -153,8 +153,17 @@ optimise (name, args, body)
 
 unPhi :: Block -> Block
 -- Pre: the block is in SSA form
-unPhi 
-  = undefined
+unPhi = unPhi' . map unPhiStmt
+  where
+    unPhiStmt (If e b b')   = If e (unPhi b) (unPhi b')
+    unPhiStmt (DoWhile b e) = DoWhile (unPhi b) e
+    unPhiStmt e             = e
+    unPhi' (If e b b' : Assign v (Phi e1 e2) : b'')
+      = unPhi' $ If e (b ++ [Assign v e1]) (b' ++ [Assign v e2]) : b''
+    unPhi' (DoWhile (Assign v (Phi e1 e2) : b) e : bs)
+      = Assign v e1 : unPhi' (DoWhile (b ++ [Assign v e2]) e : bs)
+    unPhi' (b : bs)         = b : unPhi' bs
+    unPhi' []               = []
 
 ------------------------------------------------------------------------
 -- Part IV
