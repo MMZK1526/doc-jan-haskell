@@ -1,3 +1,5 @@
+{-# LANGUAGE TupleSections #-}
+
 module Year2018.CP where
 
 import Data.Maybe
@@ -33,7 +35,7 @@ lookUp i table
               (lookup i table) 
 
 execFun :: Function -> [Int] -> State
-execFun (name, args, p) vs
+execFun (v', args, p) vs
   = execBlock p (zip args vs)
 
 ------------------------------------------------------------------------
@@ -79,8 +81,8 @@ execBlock b s = foldl (flip execStatement) s b
 
 -- Converts a function in SSA form into its optimised SSA form...
 applyPropagate :: Function -> Function
-applyPropagate (name, args, body)
-  = (name, args, propagateConstants body)
+applyPropagate (v', args, body)
+  = (v', args, propagateConstants body)
 
 ------------------------------------------------------------------------
 -- PART II
@@ -145,8 +147,8 @@ applyUnPhi (name, args, body)
 -- Combines propagation/folding and unPhi to convert a function from its
 -- unoptimised SSA form to a final non-SSA form...
 optimise :: Function -> Function
-optimise (name, args, body)
-  = (name, args, unPhi (propagateConstants body))
+optimise (v', args, body)
+  = (v', args, unPhi (propagateConstants body))
 
 ------------------------------------------------------------------------
 -- PART III
@@ -168,10 +170,124 @@ unPhi = unPhi' . map unPhiStmt
 ------------------------------------------------------------------------
 -- Part IV
 
+-- > We assume that all original variables does not contain digits as we are
+-- > going to use digital suffixes to represent different versions of the
+-- > variables.
+-- >
+-- > When splitting nested expressions, we use the variable "$temp" to store
+-- > the intermediate results.
 makeSSA :: Function -> Function
-makeSSA 
-  = undefined
+makeSSA (v', args, b)
+  = (v', args, S.evalState (makeSSABlock b) ((, -1) <$> "$temp" : getLV b))
 
+-- > Grab all the variables in a block that has appeared on the left-hand side
+-- of an assignment statement.
+getLV :: Block -> [Id]
+getLV = nub . concatMap getLVStmt
+  where
+    getLVStmt (Assign v _)  = [v]
+    getLVStmt (If _ b b')   = getLV b ++ getLV b'
+    getLVStmt (DoWhile b _) = getLV b
+
+-- > Helper function that converts a block to SSA form.
+makeSSABlock :: Block -> S.State State Block
+makeSSABlock = fmap concat . mapM makeSSAStmt
+
+-- > Helper function that converts a statement to SSA form.
+makeSSAStmt :: Statement -> S.State State [Statement]
+makeSSAStmt (Assign v e) = snd <$> makeSSAExp (v /= "$return") v e
+makeSSAStmt (If e b b')  = do
+  let lv = getLV b ++ getLV b'
+  (e', es) <- makeSSAExp False "$invalid" e
+  st       <- S.get
+  b1       <- makeSSABlock b
+  st1      <- S.get
+  b2       <- makeSSABlock b'
+  st2      <- S.get
+  phis <- fmap concat <$> forM lv
+    $ \v -> genPhi v (lookUp v st) (lookUp v st1) (lookUp v st2)
+  pure $ init es ++ If e' b1 b2 : phis
+  where
+    genPhi v ix ix1 ix2
+      -- > When the two branches generates different versions of the variable.
+      | ix1 /= ix2 = do
+        v' <- getName v
+        pure [Assign v' (Phi (Var (v ++ show ix1)) (Var (v ++ show ix2)))]
+      -- > When the two branches generates a new of the variable.
+      | ix1 /= ix  = do
+        v' <- getName v
+        pure [Assign v' (Phi (Var (v ++ show ix)) (Var (v ++ show ix1)))]
+      -- > When no new version of the variable is generated.
+      | otherwise  = pure []
+makeSSAStmt (DoWhile b e) = do
+  let lv = getLV b
+  st       <- S.get
+  phiVs    <- mapM getName lv
+  b'       <- makeSSABlock b
+  st'      <- S.get
+  (e', es) <- makeSSAExp False "$invalid" e
+  let genPhi v v' = Assign v ( Phi (Var (v ++ show (lookUp v st)))
+                                   (Var (v ++ show (lookUp v st'))) )
+  let phis = zipWith genPhi lv phiVs
+  pure [DoWhile (phis ++ b' ++ init es) e']
+
+-- > Helper function that converts a nested expression to SSA form. It takes
+-- > a boolean field indicate if we want to change the name of the left value.
+-- >
+-- > For example, if the assignment corresponds to a return statement, then we
+-- > would not want to change the name of "$return".
+-- >
+-- > It also returns the last expression of the final statement, which is useful
+-- > for generating the conditional expression for if and do-while statements.
+makeSSAExp :: Bool -> Id -> Exp -> S.State State (Exp, [Statement])
+makeSSAExp isRenaming v exp = do
+  oldState <- S.get
+  -- > Name the variables in the expression with the latest version.
+  let tag (Var v')        = Var (v' ++ maybe "" show (lookup v' oldState))
+      tag (Apply op e e') = Apply op (tag e) (tag e')
+      tag e               = e
+  snd <$> makeSSAExp' isRenaming v (tag exp)
+  where
+    -- Split nested expressions into multiple small assignments.
+    makeSSAExp' rn v e | isExpAtom e = do
+      v' <- if rn then getName v else pure v
+      pure (v', (e, [Assign v' e]))
+    makeSSAExp' rn v (Apply op e e') = case (isExpAtom e, isExpAtom e') of
+      (True, True)  -> do
+        v'       <- if rn then getName v else pure v
+        pure (v', (Apply op e e', [Assign v' (Apply op e e')]))
+      (False, True) -> do
+        (v1, (_, s1)) <- makeSSAExp' True "$temp" e
+        v'       <- if rn then getName v else pure v
+        let lastE = Apply op (Var v1) e'
+        pure (v', (lastE, s1 ++ [Assign v' lastE]))
+      (True, False) -> do
+        (v2, (_, s2)) <- makeSSAExp' True "$temp" e'
+        v'       <- if rn then getName v else pure v
+        let lastE = Apply op e (Var v2)
+        pure (v', (lastE, s2 ++ [Assign v' lastE]))
+      (_, _)        -> do
+        (v1, (_, s1)) <- makeSSAExp' True "$temp" e
+        (v2, (_, s2)) <- makeSSAExp' True "$temp" e'
+        v'       <- if rn then getName v else pure v
+        let lastE = Apply op (Var v1) (Var v2)
+        pure (v', (lastE, s1 ++ s2 ++ [Assign v' lastE]))
+
+-- > Increment the variable version and return the latest variable v'.
+getName :: String -> S.State [(String, Int)] String
+getName v         = do
+  mIx <- S.gets (lookup v)
+  case mIx of
+    Nothing -> pure v
+    Just ix -> do
+      S.modify (update (v, ix + 1))
+      pure (v ++ show (ix + 1))
+
+-- > Checks if an expression is a constant or a variable.
+isExpAtom :: Exp -> Bool
+isExpAtom (Const _) = True
+isExpAtom (Var _)   = True
+isExpAtom _         = False
 
 ------------------------------------------------------------------------
 -- Predefined functions for displaying functions and blocks...
@@ -240,8 +356,8 @@ showBlock' b n
            return (n' + 1)
 
 showFun :: Function -> IO()
-showFun (name, args, body)
-  = do putStrLn ("1:  " ++ name ++ "(" ++ showArgs args ++ ") {")
+showFun (v', args, body)
+  = do putStrLn ("1:  " ++ v' ++ "(" ++ showArgs args ++ ") {")
        n <- showBlock' body 2
        showLine "}" n 0
 
@@ -327,7 +443,7 @@ loop
     [DoWhile [Assign "sum" (Apply Add (Var "sum") (Apply Mul (Apply Add 
     (Var "i") (Apply Mul (Const 2) (Var "k"))) (Apply Add (Apply Add (Var "i") 
     (Apply Mul (Const 2) (Var "k"))) (Const 1)))),Assign "i" (Apply Add 
-    (Var "i") (Const (-1)))] (Apply Gtr (Var "i") (Const 0)),
+    (Var "i") (Const (-1)))] (Apply Gtr (Var "i") (Apply Add (Const 0) (Const 0))),
     Assign "$return" (Var "sum")]])
     
 loopSSA :: Function
