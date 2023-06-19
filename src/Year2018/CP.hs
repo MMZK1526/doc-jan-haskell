@@ -1,3 +1,4 @@
+{-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE TupleSections #-}
 
 module Year2018.CP where
@@ -8,6 +9,7 @@ import Data.List
 import Control.Monad
 import qualified Control.Monad.Trans.State as S
 import Data.Tuple
+import Test
 
 type Id = String
 
@@ -226,8 +228,8 @@ makeSSAStmt (DoWhile b e) = do
   b'       <- makeSSABlock b
   st'      <- S.get
   (e', es) <- makeSSAExp False "$invalid" e
-  let genPhi v v' = Assign v ( Phi (Var (v ++ show (lookUp v st)))
-                                   (Var (v ++ show (lookUp v st'))) )
+  let genPhi v v' = Assign v' ( Phi (Var (v ++ show (lookUp v st)))
+                                    (Var (v ++ show (lookUp v st'))) )
   let phis = zipWith genPhi lv phiVs
   pure [DoWhile (phis ++ b' ++ init es) e']
 
@@ -525,3 +527,30 @@ max2Optimised
   = ("max2",["x","y"],[If (Apply Gtr (Var "x") (Var "y")) [Assign "m0" (Var
     "x"),Assign "m2" (Var "m0")] [Assign "m1" (Var "y"),Assign "m2" (Var
     "m1")],Assign "$return" (Var "m2")])
+
+---------------------------------------------------------
+-- Test & Helpers
+
+tester :: IO ()
+tester = runTest do
+  undefined
+
+-- > Check if the function is in SSA form.
+-- > As explained in the title (TODO), there's more than one correct SSA
+-- > representation for a given function. So for the test, we will just check
+-- > if the function is in SSA form, but not if it is in the same SSA form as
+-- > the examples.
+isSSA :: Function -> Bool
+isSSA (_, _, b) = S.evalState (ap (==) nub <$> (isSSABlock b >> S.get)) []
+  where
+    isSSABlock               = fmap and <$> mapM isSSAStmt
+    isSSAStmt (Assign v e)   = do
+      unless (head v == '$') $ S.modify (v :)
+      isSSAExpr e
+    isSSAStmt (If e b1 b2)
+      = and <$> sequence [isSSAExpr e, isSSABlock b1, isSSABlock b2]
+    isSSAStmt (DoWhile b e)  = and <$> sequence [isSSABlock b, isSSAExpr e]
+    isSSAExpr (Var _)        = pure True
+    isSSAExpr (Const _)      = pure True
+    isSSAExpr (Apply _ e e') = pure $ isExpAtom e && isExpAtom e'
+    isSSAExpr (Phi e e')     = pure $ isExpAtom e && isExpAtom e'
