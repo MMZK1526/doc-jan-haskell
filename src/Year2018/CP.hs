@@ -3,6 +3,25 @@
 
 module Year2018.CP where
 
+-- > Despite been a 2-star test, I feel that this test deserves a 3-star if you
+-- > consider the bonus part (Part 4). It is quite tricky to get SSA generation
+-- > right and handle all the edge cases correctly and gracefully (the latter
+-- > I still have not achieved).
+-- >
+-- > Assuming you are in Year 1, this test is definitely helpful for your WACC
+-- > project next year as you could be dealing with SSA form and constant
+-- > propagation. As far as I remember, our group were using live variable
+-- > analysis for constant propagation, which incidentally corresponds to the
+-- > test in 2021 -- the one of my year.
+-- >
+-- > A final note on Part 4: there is a reason that the speç does not provide
+-- > any test cases for SSA generation. This is because there are more than one
+-- > correct answers for the same input. For instance, you may name the temp
+-- > variables differently, and you might have different orderings when breaking
+-- > down a nested expression. As a matter of fact, the SSA examples provided in
+-- > this module also does a little bit of static analysis on unreachable code,
+-- > something that I did not do in my implementation.
+
 import Data.Maybe
 import Data.List
 
@@ -585,6 +604,7 @@ tester = runTest do
       eta (optimise $ makeSSA max2) max2Optimised args ==. True
 
 -- > Check if the function is in SSA form.
+-- >
 -- > As explained in the title (TODO), there's more than one correct SSA
 -- > representation for a given function. So for the test, we will just check
 -- > if the function is in SSA form, but not if it is in the same SSA form as
@@ -606,6 +626,10 @@ isSSA (_, _, b) = S.evalState (ap (==) nub <$> (isSSABlock b >> S.get)) []
 
 -- > Check if the two functions behave the same with the given arguments.
 -- > Namesake from eta-equivalence.
+-- >
+-- > Although we could never be sure if two functions are equivalent (to be
+-- > certain we would need to test all possible inputs), we can at least check
+-- > if they behave the same with a given set of arguments.
 eta :: Function -> Function -> [Int] -> Bool
 eta f f' args
   = lookUp "$return" (execFun f args) == lookUp "$return" (execFun f' args)
