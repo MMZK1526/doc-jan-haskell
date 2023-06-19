@@ -216,9 +216,12 @@ makeSSAStmt (If e b b')  = do
         v' <- getName v
         pure [Assign v' (Phi (Var (v ++ show ix1)) (Var (v ++ show ix2)))]
       -- > When the two branches generates a new of the variable.
+      -- > This only happens when the variable is used only in the then-branch,
+      -- > In this case, the first PHI value corresponds to the then-branch and
+      -- > the second corresponds to the variable before the if-statement.
       | ix1 /= ix  = do
         v' <- getName v
-        pure [Assign v' (Phi (Var (v ++ show ix)) (Var (v ++ show ix1)))]
+        pure [Assign v' (Phi (Var (v ++ show ix1)) (Var (v ++ show ix)))]
       -- > When no new version of the variable is generated.
       | otherwise  = pure []
 makeSSAStmt (DoWhile b e) = do
@@ -558,6 +561,28 @@ tester = runTest do
     applyPropagate exampleSSA ==. exampleSSAPropagated
     applyPropagate basicBlockSSA ==. basicBlockSSAPropagated
     applyPropagate max2SSA ==. max2SSAPropagated
+  label "Test 'unPhi'" do
+    applyUnPhi loopSSAPropagated ==. loopOptimised
+    applyUnPhi exampleSSAPropagated ==. exampleOptimised
+    applyUnPhi basicBlockSSAPropagated ==. basicBlockOptimised
+    applyUnPhi max2SSAPropagated ==. max2Optimised
+  label "Test 'optimise'" do
+    optimise loopSSA ==. loopOptimised
+    optimise exampleSSA ==. exampleOptimised
+    optimise basicBlockSSA ==. basicBlockOptimised
+    optimise max2SSA ==. max2Optimised
+  label "Test 'makeSSA'" do
+    isSSA (makeSSA loop) ==. True
+    forM_ [[x] | x <- [0..9]] $ \args ->
+      eta (optimise $ makeSSA loop) loopOptimised args ==. True
+    isSSA (makeSSA example) ==. True
+    forM_ [[x] | x <- [0..9]] $ \args ->
+      eta (optimise $ makeSSA example) exampleOptimised args ==. True
+    isSSA (makeSSA basicBlock) ==. True
+    eta (optimise $ makeSSA basicBlock) basicBlockOptimised [] ==. True
+    isSSA (makeSSA max2) ==. True
+    forM_ [[x, y] | x <- [0..4], y <- [0..4]] $ \args ->
+      eta (optimise $ makeSSA max2) max2Optimised args ==. True
 
 -- > Check if the function is in SSA form.
 -- > As explained in the title (TODO), there's more than one correct SSA
@@ -578,3 +603,9 @@ isSSA (_, _, b) = S.evalState (ap (==) nub <$> (isSSABlock b >> S.get)) []
     isSSAExpr (Const _)      = pure True
     isSSAExpr (Apply _ e e') = pure $ isExpAtom e && isExpAtom e'
     isSSAExpr (Phi e e')     = pure $ isExpAtom e && isExpAtom e'
+
+-- > Check if the two functions behave the same with the given arguments.
+-- > Namesake from eta-equivalence.
+eta :: Function -> Function -> [Int] -> Bool
+eta f f' args
+  = lookUp "$return" (execFun f args) == lookUp "$return" (execFun f' args)
