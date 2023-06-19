@@ -92,7 +92,7 @@ applyPropagate (v', args, body)
 foldConst :: Exp -> Exp
 -- Pre: the expression is in SSA form
 foldConst (Phi e e')      = case (foldConst e, foldConst e') of
-  (Const i, Const i') -> Const i
+  (Const i, Const i') -> if i == i' then Const i else Phi e e'
   (e, e')             -> Phi e e'
 foldConst (Apply op e e') = case (op, foldConst e, foldConst e') of
   (Add, e, Const 0)      -> e
@@ -533,7 +533,31 @@ max2Optimised
 
 tester :: IO ()
 tester = runTest do
-  undefined
+  label "Test 'update'" do
+    sort (update ("x", 3) s1) ==. [("x", 3), ("y", 8)]
+    sort (update ("y", 3) s1) ==. [("x", 7), ("y", 3)]
+    sort (update ("z", 0) s1) ==. [("x", 7), ("y", 8), ("z", 0)]
+  label "Test 'apply" do
+    apply Add 7 5 ==. 12
+    apply Gtr 4 9 ==. 0
+    apply Eq  4 4 ==. 1
+  label "Test 'eval'" do
+    eval e1 s1 ==. 7
+    eval e2 s1 ==. 64
+  label "Test 'execStatement' & 'execBlock" do
+    sort (execFun fact [5]) ==. [("$return", 120), ("i", 0), ("n", 5), ("prod", 120)]
+    sort (execFun loop [4]) ==. [("$return", 40), ("i", 0), ("k", 0), ("n", 4), ("sum", 40)]
+    sort (execFun loopOptimised [4]) ==. [("$return", 40), ("a0", 1), ("b1", 2), ("i0", 4), ("i1", 0), ("i2", 0), ("m0", 2), ("n", 4), ("sum1", 40), ("sum2", 40)]
+  label "Test 'foldConst'" do
+    foldConst e3 ==. Const 2
+    foldConst e4 ==. Var "x"
+  label "Test 'sub'" do
+     sub "a" 0 e5 ==. Var "x"
+  label "Test constant propagation" do
+    applyPropagate loopSSA ==. loopSSAPropagated
+    applyPropagate exampleSSA ==. exampleSSAPropagated
+    applyPropagate basicBlockSSA ==. basicBlockSSAPropagated
+    applyPropagate max2SSA ==. max2SSAPropagated
 
 -- > Check if the function is in SSA form.
 -- > As explained in the title (TODO), there's more than one correct SSA
