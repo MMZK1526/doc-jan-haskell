@@ -134,6 +134,19 @@ sub v i e = foldConst $ sub' e
 -- type Worklist = [(Id, Int)]
 -- scan :: Id -> Int -> Block -> (Worklist, Block)
 scan :: (Exp -> Exp) -> Block -> (Exp -> Exp, Block)
+-- > I used the second approach, namely keeping track of a "transformation
+-- > function" and use composition to update it.
+-- >
+-- > At each scan, we first apply the transformation function to the block,
+-- > then we compute the new transformation by visiting each statement in the
+-- > block. If the statement is an assignment, we update the transformation
+-- > via composition. Other cases are handled recursively.
+-- >
+-- > It is probably not the most efficient solution since at every invocation
+-- > of "scan" we sould have to use the whole transformation function all over
+-- > again. However it is in my opinion a more elegant solution than the first
+-- > one, which is not only more imperative in nature but also requires using
+-- > a dummy invalid variable for the first pass.
 scan subFun b = swap $ S.runState (modifyBlock $ subBlock subFun b) subFun
   where
     subBlock                = map . subStmt
@@ -143,6 +156,7 @@ scan subFun b = swap $ S.runState (modifyBlock $ subBlock subFun b) subFun
     modifyBlock             = fmap concat . mapM modifyStmt
     modifyStmt b            = case b of
       Assign v e  -> case e of
+        -- The constant ssignment is retained if it's a return statement.
         Const i -> [Assign v (Const i) | v == "$return"] <$ S.modify (sub v i .)
         _       -> pure [Assign v e]
       If e b b'   -> pure <$> liftM2 (If e) (modifyBlock b) (modifyBlock b')
@@ -150,6 +164,7 @@ scan subFun b = swap $ S.runState (modifyBlock $ subBlock subFun b) subFun
 
 propagateConstants :: Block -> Block
 -- Pre: the block is in SSA form
+-- > Keep calling "scan" until we reach a fixed point.
 propagateConstants b = iter (scan foldConst b)
   where
     iter (f, b)
@@ -220,12 +235,17 @@ makeSSAStmt :: Statement -> S.State State [Statement]
 makeSSAStmt (Assign v e) = makeSSAExp (v /= "$return") v e
 makeSSAStmt (If e b b')  = do
   let lv = getLV b ++ getLV b'
+  -- > If the conditional expression is split into multiple statements, we keep
+  -- > the last statement as the conditional expression and the previous ones
+  -- > as assignment statements before the conditional.
   (e', es) <- makeSSAExp' e
   st       <- S.get
   b1       <- makeSSABlock b
   st1      <- S.get
   b2       <- makeSSABlock b'
   st2      <- S.get
+  -- > Generate a list of phi statements by traversing all the left values in
+  -- > the branches and see if they are updated in at least one of the branches.
   phis <- fmap concat <$> forM lv
     $ \v -> genPhi v (lookUp v st) (lookUp v st1) (lookUp v st2)
   pure $ es ++ If e' b1 b2 : phis
@@ -250,9 +270,13 @@ makeSSAStmt (DoWhile b e) = do
   phiVs    <- mapM getName lv
   b'       <- makeSSABlock b
   st'      <- S.get
+  -- > Similar to the if-case, we need to split down the conditional expression
+  -- > into multiple statements. They will be appended to the loop body.
   (e', es) <- makeSSAExp' e
   let genPhi v v' = Assign v' ( Phi (Var (v ++ show (lookUp v st)))
                                     (Var (v ++ show (lookUp v st'))) )
+  -- > Generate the phi statements for the loop which will be prepended to the
+  -- > loop body.
   let phis = zipWith genPhi lv phiVs
   pure [DoWhile (phis ++ b' ++ es) e']
 
@@ -268,7 +292,7 @@ makeSSAExp isRenaming v expr = do
   -- > There are more efficient alternatives to the list concatenation here.
   pure $ b ++ [Assign v' e']
 
--- > Similar to @makeSSAExp@, but it retains the unassigned last expression.
+-- > Similar to "makeSSAExp", but it retains the unassigned last expression.
 makeSSAExp' :: Exp -> S.State State (Exp, [Statement])
 makeSSAExp' expr = do
   oldState <- S.get
@@ -279,18 +303,21 @@ makeSSAExp' expr = do
   flatternExp (tag expr)
   where
     -- Split nested expressions into multiple small assignments.
-    flatternExp e | isExpAtom e = pure (e, [])
+    flatternExp e | isExpAtom e = pure (e, []) -- Already simple enough
     flatternExp (Apply op e e') = case (isExpAtom e, isExpAtom e') of
-      (True, True)  -> pure (Apply op e e', [])
+      (True, True)  -> pure (Apply op e e', []) -- Already simple enough
       (False, True) -> do
+        -- Create temp variable to store the result of the first expression.
         s1 <- makeSSAExp True "$temp" e
         v1 <- ("$temp" ++) . show <$> S.gets (lookUp "$temp")
         pure (Apply op (Var v1) e', s1)
       (True, False) -> do
+        -- Create temp variable to store the result of the second expression.
         s2 <- makeSSAExp True "$temp" e'
         v2 <- ("$temp" ++) . show <$> S.gets (lookUp "$temp")
         pure (Apply op e (Var v2), s2)
       (_, _)        -> do
+        -- Create temp variables to store the result of the two expressions.
         s1 <- makeSSAExp True "$temp" e
         v1 <- ("$temp" ++) . show <$> S.gets (lookUp "$temp")
         s2 <- makeSSAExp True "$temp" e'
