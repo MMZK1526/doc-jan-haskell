@@ -216,10 +216,10 @@ makeSSABlock = fmap concat . mapM makeSSAStmt
 
 -- > Helper function that converts a statement to SSA form.
 makeSSAStmt :: Statement -> S.State State [Statement]
-makeSSAStmt (Assign v e) = snd <$> makeSSAExp (v /= "$return") v e
+makeSSAStmt (Assign v e) = makeSSAExp (v /= "$return") v e
 makeSSAStmt (If e b b')  = do
   let lv = getLV b ++ getLV b'
-  (e', es) <- makeSSAExp False "$invalid" e
+  (e', es) <- makeSSAExp' e
   st       <- S.get
   b1       <- makeSSABlock b
   st1      <- S.get
@@ -227,7 +227,7 @@ makeSSAStmt (If e b b')  = do
   st2      <- S.get
   phis <- fmap concat <$> forM lv
     $ \v -> genPhi v (lookUp v st) (lookUp v st1) (lookUp v st2)
-  pure $ init es ++ If e' b1 b2 : phis
+  pure $ es ++ If e' b1 b2 : phis
   where
     genPhi v ix ix1 ix2
       -- > When the two branches generates different versions of the variable.
@@ -249,53 +249,51 @@ makeSSAStmt (DoWhile b e) = do
   phiVs    <- mapM getName lv
   b'       <- makeSSABlock b
   st'      <- S.get
-  (e', es) <- makeSSAExp False "$invalid" e
+  (e', es) <- makeSSAExp' e
   let genPhi v v' = Assign v' ( Phi (Var (v ++ show (lookUp v st)))
                                     (Var (v ++ show (lookUp v st'))) )
   let phis = zipWith genPhi lv phiVs
-  pure [DoWhile (phis ++ b' ++ init es) e']
+  pure [DoWhile (phis ++ b' ++ es) e']
 
 -- > Helper function that converts a nested expression to SSA form. It takes
 -- > a boolean field indicate if we want to change the name of the left value.
 -- >
 -- > For example, if the assignment corresponds to a return statement, then we
 -- > would not want to change the name of "$return".
--- >
--- > It also returns the last expression of the final statement, which is useful
--- > for generating the conditional expression for if and do-while statements.
-makeSSAExp :: Bool -> Id -> Exp -> S.State State (Exp, [Statement])
-makeSSAExp isRenaming v exp = do
+makeSSAExp :: Bool -> Id -> Exp -> S.State State [Statement]
+makeSSAExp isRenaming v expr = do
+  (e', b) <- makeSSAExp' expr
+  v'      <- if isRenaming then getName v else pure v 
+  pure $ b ++ [Assign v' e']
+
+-- > Similar to @makeSSAExp@, but it retains the unassigned last expression.
+makeSSAExp' :: Exp -> S.State State (Exp, [Statement])
+makeSSAExp' expr = do
   oldState <- S.get
   -- > Name the variables in the expression with the latest version.
   let tag (Var v')        = Var (v' ++ maybe "" show (lookup v' oldState))
       tag (Apply op e e') = Apply op (tag e) (tag e')
       tag e               = e
-  snd <$> makeSSAExp' isRenaming v (tag exp)
+  flatternExp (tag expr)
   where
     -- Split nested expressions into multiple small assignments.
-    makeSSAExp' rn v e | isExpAtom e = do
-      v' <- if rn then getName v else pure v
-      pure (v', (e, [Assign v' e]))
-    makeSSAExp' rn v (Apply op e e') = case (isExpAtom e, isExpAtom e') of
-      (True, True)  -> do
-        v'       <- if rn then getName v else pure v
-        pure (v', (Apply op e e', [Assign v' (Apply op e e')]))
+    flatternExp e | isExpAtom e = pure (e, [])
+    flatternExp (Apply op e e') = case (isExpAtom e, isExpAtom e') of
+      (True, True)  -> pure (Apply op e e', [])
       (False, True) -> do
-        (v1, (_, s1)) <- makeSSAExp' True "$temp" e
-        v'       <- if rn then getName v else pure v
-        let lastE = Apply op (Var v1) e'
-        pure (v', (lastE, s1 ++ [Assign v' lastE]))
+        s1 <- makeSSAExp True "$temp" e
+        v1 <- ("$temp" ++) . show <$> S.gets (lookUp "$temp")
+        pure (Apply op (Var v1) e', s1)
       (True, False) -> do
-        (v2, (_, s2)) <- makeSSAExp' True "$temp" e'
-        v'       <- if rn then getName v else pure v
-        let lastE = Apply op e (Var v2)
-        pure (v', (lastE, s2 ++ [Assign v' lastE]))
+        s2 <- makeSSAExp True "$temp" e'
+        v2 <- ("$temp" ++) . show <$> S.gets (lookUp "$temp")
+        pure (Apply op e (Var v2), s2)
       (_, _)        -> do
-        (v1, (_, s1)) <- makeSSAExp' True "$temp" e
-        (v2, (_, s2)) <- makeSSAExp' True "$temp" e'
-        v'       <- if rn then getName v else pure v
-        let lastE = Apply op (Var v1) (Var v2)
-        pure (v', (lastE, s1 ++ s2 ++ [Assign v' lastE]))
+        s1 <- makeSSAExp True "$temp" e
+        v1 <- ("$temp" ++) . show <$> S.gets (lookUp "$temp")
+        s2 <- makeSSAExp True "$temp" e'
+        v2 <- ("$temp" ++) . show <$> S.gets (lookUp "$temp")
+        pure (Apply op (Var v1) (Var v2), s1 ++ s2)
 
 -- > Increment the variable version and return the latest variable v'.
 getName :: String -> S.State [(String, Int)] String
