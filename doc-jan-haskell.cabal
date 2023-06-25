@@ -13,6 +13,7 @@ library
     -- import:           warnings
     exposed-modules:
         Test,
+        Year2017.DC,
         Year2018.CP,
         Year2019.SOL,
         Year2019.TestData,
