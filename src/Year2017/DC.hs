@@ -42,30 +42,34 @@ lookUp x table
 --------------------------------------------------------------------
 
 allSame :: Eq a => [a] -> Bool
-allSame 
-  = undefined
+allSame []       = True
+allSame (x : xs) = all (== x) xs
 
 remove :: Eq a => a -> [(a, b)] -> [(a, b)]
-remove 
-  = undefined
+remove a [] = []
+remove a ((x, y) : xys)
+  | a == x    = remove a xys
+  | otherwise = (x, y) : remove a xys
 
 lookUpAtt :: AttName -> Header -> Row -> AttValue
 --Pre: The attribute name is present in the given header.
-lookUpAtt
-  = undefined
+lookUpAtt attName header = lookUp attName . zip (map fst header)
 
 removeAtt :: AttName -> Header -> Row -> Row
-removeAtt
-  = undefined
+removeAtt attName header = map snd . remove attName . zip (map fst header)
 
 addToMapping :: Eq a => (a, b) -> [(a, [b])] -> [(a, [b])]
-addToMapping
-  = undefined
+addToMapping (x, y) [] = [(x, [y])]
+addToMapping (x, y) ((x', ys) : es)
+  | x == x'   = (x', y : ys) : es
+  | otherwise = (x', ys) : addToMapping (x, y) es
 
 buildFrequencyTable :: Attribute -> DataSet -> [(AttValue, Int)]
 --Pre: Each row of the data set contains an instance of the attribute
-buildFrequencyTable
-  = undefined
+buildFrequencyTable (attName, attVals) (header, rows)
+  = map (\attVal -> (attVal, length (filter (== attVal) dataAttVals))) attVals
+  where
+    dataAttVals = map (lookUpAtt attName header) rows
 
 --------------------------------------------------------------------
 -- PART II
