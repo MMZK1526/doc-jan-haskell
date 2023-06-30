@@ -76,12 +76,15 @@ buildFrequencyTable (attName, attVals) (header, rows)
 --------------------------------------------------------------------
 
 nodes :: DecisionTree -> Int
-nodes 
-  = undefined
+nodes Null        = 0
+nodes (Leaf _)    = 1
+nodes (Node _ ns) = 1 + sum (map (nodes . snd) ns)
 
 evalTree :: DecisionTree -> Header -> Row -> AttValue
-evalTree 
-  = undefined
+evalTree Null _ _          = ""
+evalTree (Leaf attVal) _ _ = attVal
+evalTree (Node attName ns) header row
+  = evalTree (lookUp (lookUpAtt attName header row) ns) header row
 
 --------------------------------------------------------------------
 -- PART III
