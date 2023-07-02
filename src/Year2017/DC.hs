@@ -102,12 +102,24 @@ nextAtt (header, _) (classifierName, _)
   = head (filter ((/= classifierName) . fst) header)
 
 partitionData :: DataSet -> Attribute -> Partition
-partitionData 
-  = undefined
+partitionData (header, rows) (attrName, attVals)
+  = map (\attVal -> (attVal, (header', rowsWith attVal))) attVals
+  where
+    header'         = remove attrName header
+    rowsWith attVal = map (removeAtt attrName header)
+                    $ filter ((== attVal) . lookUpAtt attrName header) rows
 
 buildTree :: DataSet -> Attribute -> AttSelector -> DecisionTree 
-buildTree 
-  = undefined
+buildTree dataSet@(header, rows) attr@(attrName, _) selector
+  | null results    = Null
+  | allSame results = Leaf (head results)
+  | otherwise       = Node attrName' $ map (uncurry recBuild) partition
+  where
+    attr'@(attrName', _) = selector dataSet attr
+    partition            = partitionData dataSet attr'
+    allData              = snd <$> partition
+    results              = lookUpAtt attrName header <$> rows
+    recBuild attVal ds   = (attVal, buildTree ds attr selector)
 
 --------------------------------------------------------------------
 -- PART IV
