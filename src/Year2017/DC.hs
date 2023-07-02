@@ -2,6 +2,7 @@ module Year2017.DC where
 
 import Data.Maybe
 import Data.List
+import Data.Ord
 
 type AttName = String
 
@@ -117,7 +118,6 @@ buildTree dataSet@(header, rows) attr@(attrName, _) selector
   where
     attr'@(attrName', _) = selector dataSet attr
     partition            = partitionData dataSet attr'
-    allData              = snd <$> partition
     results              = lookUpAtt attrName header <$> rows
     recBuild attVal ds   = (attVal, buildTree ds attr selector)
 
@@ -126,16 +126,27 @@ buildTree dataSet@(header, rows) attr@(attrName, _) selector
 --------------------------------------------------------------------
 
 entropy :: DataSet -> Attribute -> Double
-entropy 
-  = undefined
-
+entropy dataSet attr
+  | len == 0  = 0.0
+  | otherwise = negate . sum $ xlogx <$> freqs
+  where
+    freqTable = buildFrequencyTable attr dataSet
+    len       = genericLength $ snd dataSet
+    freqs     = (/ len) . fromIntegral . snd <$> freqTable
 gain :: DataSet -> Attribute -> Attribute -> Double
-gain 
-  = undefined
+gain dataSet attrP attrC = entWhole - entParts
+  where
+    dsLength = genericLength . snd
+    len      = dsLength dataSet
+    entWhole = entropy dataSet attrC
+    partSets = snd <$> partitionData dataSet attrP
+    entParts = sum $ (\ds -> entropy ds attrC * dsLength ds / len) <$> partSets
 
 bestGainAtt :: AttSelector
-bestGainAtt 
-  = undefined
+bestGainAtt dataSet@(header, _) attr = maximumBy comparator attrs
+  where
+    attrs      = header \\ [attr]
+    comparator = comparing (flip (gain dataSet) attr)
 
 --------------------------------------------------------------------
 
