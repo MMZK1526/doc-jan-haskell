@@ -1,5 +1,14 @@
 {-# LANGUAGE BlockArguments #-}
+
 module Year2017.DC where
+
+-- > This year's test is pretty straightforward, so I didn't even include any
+-- > comment for the functions.
+-- >
+-- > Just one thing to note: the idea of decision tree will come back in the
+-- > third-year module of Introduction to Machine Learning, and the
+-- > implementation of decision tree is pretty much the same there (but in
+-- > Python of course).
 
 import Data.Maybe
 import Data.List
