@@ -36,6 +36,14 @@ actual ==. expected = unless (actual == expected) $ do
                , "  Actual:\n" ++ show actual ++ "\n" ]
 infix 1 ==.
 
+(==~) :: Show a => Fractional a => Ord a => a -> a -> Test
+actual ==~ expected = unless (abs (actual - expected) < 0.0001) $ do
+          name <- get
+          tell [name ++ " failed:"
+               , "  Expected:\n" ++ show expected
+               , "  Actual:\n" ++ show actual ++ "\n" ]
+infix 1 ==~
+
 label :: String -> Test -> Test
 label name test = do
   name' <- get

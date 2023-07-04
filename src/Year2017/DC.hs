@@ -1,8 +1,10 @@
+{-# LANGUAGE BlockArguments #-}
 module Year2017.DC where
 
 import Data.Maybe
 import Data.List
 import Data.Ord
+import Test
 
 type AttName = String
 
@@ -273,3 +275,49 @@ outlookPartition
                   [["mild","high","calm","good"],["cool","normal","calm","good"],
                    ["cool","normal","windy","bad"],["mild","normal","calm","good"],
                    ["mild","high","windy","bad"]]))]
+
+---------------------------------------------------------
+-- Test & Helpers
+
+tester :: IO ()
+tester = runTest do
+  label "Test 'allSame" do
+    allSame ([] :: [Int]) ==. True
+    allSame [9, 9, 9] ==. True
+    allSame "abc" ==. False
+  label "Test 'remove'" do
+    remove 1 [(3, 'a'), (1, 'b'), (7, 'a')] ==. [(3, 'a'), (7, 'a')]
+    remove 6 ([] :: [(Int, Char)]) ==. []
+  label "Test 'lookUpAtt'" do
+    lookUpAtt "temp" header (head table) ==. "hot"
+  label "Test 'removeAtt'" do
+    removeAtt "temp" header (head table) ==. ["sunny", "high", "calm", "bad"]
+  label "Test 'addToMapping'" do
+    sort (addToMapping (1, 'a') [(2, "b")]) ==. [(1, "a"), (2, "b")]
+    sort (addToMapping (5, 'a') [(2, "b"), (5, "bcd")]) ==. [(2, "b"), (5, "abcd")]
+  label "Test 'buildFrequencyTable'" do
+     buildFrequencyTable result fishingData ==. [("good", 9), ("bad", 5)]
+     buildFrequencyTable outlook fishingData ==. [("sunny", 5), ("overcast", 4), ("rainy", 5)]
+     buildFrequencyTable outlook ([], []) ==. [("sunny", 0), ("overcast", 0), ("rainy", 0)]
+  label "Test 'nodes'" do
+    nodes fig1 ==. 18
+    nodes fig2 ==. 8
+  label "Test 'evalTree'" do
+    evalTree fig1 header (table !! 5) ==. "bad"
+    evalTree fig2 header (table !! 4) ==. "good"
+  label "Test 'partitionData'" do
+    partitionData fishingData outlook ==. outlookPartition
+  label "Test 'buildTree'" do
+    buildTree fishingData result nextAtt ==. fig1
+  label "Test 'entropy'" do
+    entropy fishingData result ==~ 0.9402859586706309
+    entropy fishingData temp ==~ 1.5566567074628228
+    entropy (header, []) result ==~ 0.0
+  label "Test 'informationGain'" do
+    gain fishingData outlook result ==~ 0.2467498197744391
+    gain fishingData temp result ==~ 2.9222565658954647e-2
+    gain fishingData humidity result ==~ 0.15183550136234136
+    gain fishingData wind result ==~ 0.04812703040826927
+  label "Test 'bestGainAtt'" do
+     bestGainAtt fishingData result ==. ("outlook", ["sunny", "overcast", "rainy"])
+     buildTree fishingData result bestGainAtt ==. fig2
