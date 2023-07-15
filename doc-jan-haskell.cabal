@@ -4,7 +4,9 @@ version:            0.1.0.0
 author:             mmzk1526
 maintainer:         mmzk1526@outlook.com
 build-type:         Simple
-
+extra-source-files:
+    src/Year2016/filmTable.html,
+    src/Year2016/composerList.html
 
 common warnings
     ghc-options: -Wall
@@ -13,6 +15,7 @@ library
     -- import:           warnings
     exposed-modules:
         Test,
+        Year2016.Exam,
         Year2017.DC,
         Year2018.CP,
         Year2019.SOL,
@@ -27,7 +30,7 @@ library
         Year2021.Types,
         Year2022.Examples,
         Year2022.SC,
-        Year2022.Types,
+        Year2022.Types
     build-depends:
         base,
         mtl,
