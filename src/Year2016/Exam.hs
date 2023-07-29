@@ -1,4 +1,4 @@
-module Exam where
+module Year2016.Exam where
 
 import Data.Char
 import Data.Maybe
@@ -46,29 +46,35 @@ printXMLs
 -- Part I
 
 skipSpace :: String -> String
-skipSpace
-  = undefined
+skipSpace = dropWhile isSpace
 
 getAttribute :: String -> XML -> String
-getAttribute 
-  = undefined
+getAttribute attrName (Element _ attrs _) = fromMaybe "" (lookup attrName attrs)
+getAttribute _ _                          = ""
 
 getChildren :: String -> XML -> [XML]
-getChildren 
-  = undefined
+getChildren name (Element _ _ children) = filter nameFilter children
+  where
+    nameFilter (Element n _ _) = n == name
+    nameFilter _               = False
+getChildren _ _                         = []
 
 getChild :: String -> XML -> XML
-getChild 
-  = undefined
+getChild name xml = case getChildren name xml of
+  []      -> Text ""
+  (x : _) -> x
 
 addChild :: XML -> XML -> XML
 -- Pre: the second argument is an Element
-addChild 
-  = undefined
+addChild xml (Element name attrs children)
+  = Element name attrs (children ++ [xml])
 
 getValue :: XML -> XML
-getValue 
-  = undefined
+getValue = Text . getString
+  where
+    getString Null                   = ""
+    getString (Text s)               = s
+    getString (Element _ _ children) = concatMap getString children
 
 -------------------------------------------------------------------------
 -- Part II
