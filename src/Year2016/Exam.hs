@@ -195,7 +195,7 @@ expandXSL' context xsl = case xsl of
   Element "value-of" [("select", value)] _
     -> [getElem (breakPath value) context]
   Element "for-each" [("select", value)] children
-    -> [ xml | context <- getDescendent (breakPath value) context
+    -> [ xml | context <- getDescendents (breakPath value) context
              , child <- children, xml <- expandXSL' context child ]
   Element name attrs children
     -> [Element name attrs (concatMap (expandXSL' context) children)]
@@ -212,14 +212,14 @@ expandXSL' context xsl = case xsl of
       (x, _ : y) -> x : breakPath y
     -- > The following are partial functions that assume the path is 
     -- > well-formed. `getElem` returns the textual part of the first element
-    -- > that matches the path, and `getDescendent` returns all elements that
+    -- > that matches the path, and `getDescendents` returns all elements that
     -- > match the path.
-    getElem [] xml             = getValue xml
-    getElem ['@' : attr] xml   = Text $ getAttribute attr xml
-    getElem (x : xs) xml       = getElem xs (getChild x xml)
-    getDescendent [] xml       = [xml]
-    getDescendent (x : xs) xml = concatMap (getDescendent xs)
-                                           (getChildren x xml)
+    getElem [] xml              = getValue xml
+    getElem ['@' : attr] xml    = Text $ getAttribute attr xml
+    getElem (x : xs) xml        = getElem xs (getChild x xml)
+    getDescendents [] xml       = [xml]
+    getDescendents (x : xs) xml = concatMap (getDescendents xs)
+                                            (getChildren x xml)
 
 -------------------------------------------------------------------------
 -- Test data for Parts I and II
