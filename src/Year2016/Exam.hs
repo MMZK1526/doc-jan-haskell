@@ -191,6 +191,7 @@ expandXSL' context xsl = case xsl of
       (".", y)   -> breakPath y
       (x, "")    -> [x]
       (x, _ : y) -> x : breakPath y
+    -- > The following are partial functions that assume the path is well-formed
     getElem [] xml             = getValue xml
     getElem ['@' : attr] xml   = Text $ getAttribute attr xml
     getElem (x : xs) xml       = getElem xs (getChild x xml)

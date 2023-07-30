@@ -8,11 +8,7 @@ extra-source-files:
     src/Year2016/filmTable.html,
     src/Year2016/composerList.html
 
-common warnings
-    ghc-options: -Wall
-
 library
-    -- import:           warnings
     exposed-modules:
         Test,
         Year2016.Exam,
@@ -37,5 +33,33 @@ library
         transformers,
     hs-source-dirs:   src
     default-language: Haskell2010
-    ghc-options: 
-        -O2
+
+test-suite test
+    type:              exitcode-stdio-1.0
+    hs-source-dirs:
+        src
+        test
+    main-is:           Spec.hs
+    other-modules:
+        Test,
+        Year2016.Exam,
+        Year2017.DC,
+        Year2018.CP,
+        Year2019.SOL,
+        Year2019.TestData,
+        Year2019.Types,
+        Year2020.Examples,
+        Year2020.HashFunctions,
+        Year2020.Tries,
+        Year2020.Types,
+        Year2021.Alloc,
+        Year2021.Examples,
+        Year2021.Types,
+        Year2022.Examples,
+        Year2022.SC,
+        Year2022.Types
+    build-depends:
+        base,
+        mtl,
+        transformers,
+    default-language:  Haskell2010
