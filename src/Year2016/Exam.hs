@@ -1,3 +1,5 @@
+{-# LANGUAGE BlockArguments #-}
+
 module Year2016.Exam where
 
 -- > The XML transformation is a foreign concept for me, and while this test
@@ -15,6 +17,7 @@ import Data.Char
 import Data.Maybe
 
 import Control.Monad.Trans.State
+import Data.Bifunctor
 
 type Name = String
 
@@ -154,10 +157,9 @@ parse' "" (Element _ _ (xml : _) : _)
 parse' ('<' : '/' : str) xmls
   = parse' (tail $ dropWhile (/= '>') str) (popAndAdd xmls)
 parse' ('<' : str) xmls
-  = parse' str'' (Element name attrs [] : xmls)
+  = parse' str' (Element name attrs [] : xmls)
   where
-    (name, str')   = parseName str
-    (attrs, str'') = parseAttributes str'
+    (name, (attrs, str')) = second parseAttributes (parseName str)
 parse' str xmls
   = parse' str' (addText text xmls)
   where
@@ -204,13 +206,13 @@ expandXSL' context xsl = case xsl of
   where
     -- > Split a path into its components; '.' is ignored since it is already
     -- > the current directory.
-    breakPath ""               = []
-    breakPath path             = case break (== '/') path of
+    breakPath ""                = []
+    breakPath path              = case break (== '/') path of
       ("", y)    -> breakPath y
       (".", y)   -> breakPath y
       (x, "")    -> [x]
       (x, _ : y) -> x : breakPath y
-    -- > The following are partial functions that assume the path is 
+    -- > The following are partial functions that assume the path is
     -- > well-formed. `getElem` returns the textual part of the first element
     -- > that matches the path, and `getDescendents` returns all elements that
     -- > match the path.
