@@ -4,7 +4,7 @@ import Data.Char
 import Data.Maybe
 
 import Control.Monad.Trans.State
-  
+
 type Name = String
 
 type Attributes = [(Name, String)]
@@ -37,7 +37,7 @@ showXMLs
 
 -- Prints an XML object to the terminal
 printXML :: XML -> IO()
-printXML 
+printXML
   = putStrLn . showXML
 
 -- Prints a list of XML objects to the terminal (useful for testing the
@@ -96,7 +96,7 @@ parseName s@(c : cs)
     isNameChar c = isAlpha c || isDigit c || elem c "-."
 
 sentinel :: XML
-sentinel 
+sentinel
   = Element "" [] []
 
 addText :: String -> Stack -> Stack
@@ -168,14 +168,35 @@ output file xsl source
   = writeFile file (showXMLs (expandXSL xsl source))
 
 expandXSL :: XSL -> XML -> [XML]
-expandXSL xsl source 
+expandXSL xsl source
   = expandXSL' root xsl
   where
-    root = Element "/" [] [source] 
+    root = Element "/" [] [source]
 
 expandXSL' :: Context -> XSL -> [XML]
-expandXSL' 
-  = undefined
+expandXSL' context xsl = case xsl of
+  Element "value-of" [("select", value)] _
+    -> [getElem (breakPath value) context]
+  Element "for-each" [("select", value)] children
+    -> [ xml | context <- getDescendent (breakPath value) context
+             , child <- children, xml <- expandXSL' context child ]
+  Element name attrs children
+    -> [Element name attrs (concatMap (expandXSL' context) children)]
+  xml
+    -> [xml]
+  where
+    breakPath ""               = []
+    breakPath path             = case break (== '/') path of
+      ("", y)    -> breakPath y
+      (".", y)   -> breakPath y
+      (x, "")    -> [x]
+      (x, _ : y) -> x : breakPath y
+    getElem [] xml             = getValue xml
+    getElem ['@' : attr] xml   = Text $ getAttribute attr xml
+    getElem (x : xs) xml       = getElem xs (getChild x xml)
+    getDescendent [] xml       = [xml]
+    getDescendent (x : xs) xml = concatMap (getDescendent xs)
+                                           (getChildren x xml)
 
 -------------------------------------------------------------------------
 -- Test data for Parts I and II
@@ -184,7 +205,7 @@ expandXSL'
 s1, s2, s3 :: String
 s1
   = "<a>A</a>"
-s2 
+s2
   = "<a x=\"1\"><b>A</b><b>B</b></a>"
 s3
   = "<a>\
@@ -208,34 +229,34 @@ x2
             [Element "b" [] [Text "A"],
              Element "b" [] [Text "B"]]
 x3
-  = Element "a" 
-            [] 
-            [Element "b" 
-                     [] 
+  = Element "a"
+            []
+            [Element "b"
+                     []
                      [Element "c"
-                              [("att","att1")] 
+                              [("att","att1")]
                               [Text "text1"],
-                      Element "c" 
+                      Element "c"
                               [("att","att2")]
                               [Text "text2"]],
-             Element "b" 
-                     [] 
-                     [Element "c" 
-                              [("att","att3")] 
+             Element "b"
+                     []
+                     [Element "c"
+                              [("att","att3")]
                               [Text "text3"],
-                      Element "d" 
-                              [] 
+                      Element "d"
+                              []
                               [Text "text4"]]]
 
-casablanca :: String 
+casablanca :: String
 casablanca
   = "<film title=\"Casablanca\">\n  <director>Michael Curtiz</director>\n  <year>1942\
     \</year>\n</film>\n\n\n"
 
-casablancaParsed :: XML 
+casablancaParsed :: XML
 casablancaParsed
-  = Element "film" 
-            [("title","Casablanca")] 
+  = Element "film"
+            [("title","Casablanca")]
             [Text "\n  ",
              Element "director" [] [Text "Michael Curtiz"],
              Text "\n  ",
@@ -268,8 +289,8 @@ films
 -- Parsed version of films ('parse films'), suitably formatted
 filmsParsed :: XML
 filmsParsed
-  = Element "filmlist" 
-            [] 
+  = Element "filmlist"
+            []
             [Text "\n  ",
              Element "film" [("title","Rear Window")]
                             [Text "\n    ",
@@ -280,7 +301,7 @@ filmsParsed
                              Element "year" [] [Text "1954"],
                              Text "\n  "],
              Text "\n  ",
-             Element "film" [("title","2001: A Space Odyssey")] 
+             Element "film" [("title","2001: A Space Odyssey")]
                             [Text "\n    ",
                              Element "director" [] [Text "Stanley Kubrick"],
                              Text "\n    ",
@@ -293,7 +314,7 @@ filmsParsed
                              Element "year" [] [Text "1968"],
                              Text "\n  "],
              Text "\n  ",
-             Element "film" [("title","Lawrence of Arabia")] 
+             Element "film" [("title","Lawrence of Arabia")]
                             [Text "\n    ",
                              Element "duration" [] [Text "228"],
                              Text "\n    ",
@@ -307,7 +328,7 @@ filmsParsed
 -- XSL tests
 
 -- value-of test cases
-xsl1, xsl2, xsl3, xsl4, xsl5, xsl6, xsl7, 
+xsl1, xsl2, xsl3, xsl4, xsl5, xsl6, xsl7,
   xsl8, xsl9 :: String
 xsl1
   = "<value-of select = \"a/b/c\"></value-of>"
@@ -325,14 +346,14 @@ xsl6
 -- for-each test cases
 xsl7
   = "<for-each select=\"a/b/c\"><value-of select=\"./@att\"></value-of>\
-    \</for-each>" 
+    \</for-each>"
 xsl8
   = "<for-each select=\"a/b\"><t><value-of select=\"c\"></value-of></t>\
-    \</for-each>" 
+    \</for-each>"
 xsl9
   = "<for-each select=\"a/b\"><t1><value-of select=\"absent\"></value-of>\
     \</t1></for-each>"
-        
+
 -- Parsed versions of the above
 xsl1Parsed, xsl2Parsed, xsl3Parsed, xsl4Parsed, xsl5Parsed,
   xsl6Parsed, xsl7Parsed, xsl8Parsed, xsl9Parsed :: XML
@@ -347,22 +368,22 @@ xsl4Parsed
 xsl5Parsed
   = Element "value-of" [("select","./a/./b/c/./.")] []
 xsl6Parsed
-  = Element "t1" 
-            [] 
+  = Element "t1"
+            []
             [Element "t2" [] [Text "Preamble"],
              Element "t3" [] [Element "value-of" [("select","a/b/c")] []]]
 
 xsl7Parsed
-  = Element "for-each" 
-            [("select","a/b/c")] 
+  = Element "for-each"
+            [("select","a/b/c")]
             [Element "value-of" [("select","./@att")] []]
 xsl8Parsed
-  = Element "for-each" 
-            [("select","a/b")] 
+  = Element "for-each"
+            [("select","a/b")]
             [Element "t" [] [Element "value-of" [("select","c")] []]]
 xsl9Parsed
-  = Element "for-each" 
-            [("select","a/b")] 
+  = Element "for-each"
+            [("select","a/b")]
             [Element "t1" [] [Element "value-of" [("select","absent")] []]]
 
 -- XSL template for building a films summary (example from spec.)
