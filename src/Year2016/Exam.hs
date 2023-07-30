@@ -2,11 +2,16 @@ module Year2016.Exam where
 
 import Data.Char
 import Data.Maybe
+
+import Control.Monad.Trans.State
   
 type Name = String
 
 type Attributes = [(Name, String)]
 
+-- > The @Null@ constructor is removed from the updated specification but not
+-- > from the code. It is used to represent the empty XML element, but now that
+-- > is represented by @Text ""@.
 data XML = Null | Text String | Element Name Attributes [XML]
          deriving (Eq, Show)
 
@@ -96,27 +101,54 @@ sentinel
 
 addText :: String -> Stack -> Stack
 -- Pre: There is at least one Element on the stack
-addText 
-  = undefined
+addText str (Element name attrs children : xmls)
+  = Element name attrs (children ++ [Text str]) : xmls
 
 popAndAdd :: Stack -> Stack
 -- Pre: There are at least two Elements on the stack
-popAndAdd 
-  = undefined
+popAndAdd (xml : Element name attrs children : xmls)
+  = Element name attrs (children ++ [xml]) : xmls
 
 parseAttributes :: String -> (Attributes, String)
 -- Pre: The XML attributes string is well-formed
-parseAttributes 
-  = undefined
+parseAttributes str = runState (modify skipSpace >> worker) str
+  where
+    worker   = do
+      str <- get
+      if head str == '>'
+        then [] <$ skip1
+        else do
+          let (name, str') = parseName str
+          lexeme $ put str'
+          lexeme skip1 -- > By well-formed assumption, this must be a '='
+          lexeme skip1 -- > By well-formed assumption, this must be a '"'
+          str <- get
+          let (value, _ : str') = break (== '"') str
+          lexeme $ put str'
+          ((name, value) :) <$> worker
+    lexeme p = p <* modify skipSpace
+    skip1    = modify (drop 1)
 
 parse :: String -> XML
 -- Pre: The XML string is well-formed
 parse s
   = parse' (skipSpace s) [sentinel]
 
+-- > We assume that all inputs are well-formed.
 parse' :: String -> Stack -> XML
-parse' 
-  = undefined
+parse' "" (Element _ _ (xml : _) : _)
+ = xml
+parse' ('<' : '/' : str) xmls
+  = parse' (tail $ dropWhile (/= '>') str) (popAndAdd xmls)
+parse' ('<' : str) xmls
+  = parse' str'' (Element name attrs [] : xmls)
+  where
+    (name, str')   = parseName str
+    (attrs, str'') = parseAttributes str'
+parse' str xmls
+  = parse' str' (addText text xmls)
+  where
+    (text, str') = break (== '<') str
 
 -------------------------------------------------------------------------
 -- Part III
