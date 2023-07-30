@@ -1,5 +1,16 @@
 module Year2016.Exam where
 
+-- > The XML transformation is a foreign concept for me, and while this test
+-- > is not (in my opinion) the hardest of all times, I did spend much longer
+-- > than average both reading the specification and debugging my code. It would
+-- > be another example where I may not be able to get everything right in the
+-- > 3-hour time limit!
+-- >
+-- > That being said, the logic of the XML transformation is not too difficult
+-- > once you understand the specification. The parsing in Part II can be
+-- > quite cumbersome, especially for those who used parser combinators before.
+-- > Evidently monadic parser wins!
+
 import Data.Char
 import Data.Maybe
 
@@ -116,8 +127,8 @@ parseAttributes str = runState (modify skipSpace >> worker) str
     worker   = do
       str <- get
       if head str == '>'
-        then [] <$ skip1
-        else do
+        then [] <$ skip1 -- > End of attribute list
+        else do -- > Parse an attribute
           let (name, str') = parseName str
           lexeme $ put str'
           lexeme skip1 -- > By well-formed assumption, this must be a '='
@@ -125,9 +136,9 @@ parseAttributes str = runState (modify skipSpace >> worker) str
           str <- get
           let (value, _ : str') = break (== '"') str
           lexeme $ put str'
-          ((name, value) :) <$> worker
-    lexeme p = p <* modify skipSpace
-    skip1    = modify (drop 1)
+          ((name, value) :) <$> worker -- > Parse the rest of the attributes
+    lexeme p = p <* modify skipSpace -- > Skip spaces after parsing
+    skip1    = modify (drop 1) -- > Skip one character
 
 parse :: String -> XML
 -- Pre: The XML string is well-formed
@@ -135,6 +146,8 @@ parse s
   = parse' (skipSpace s) [sentinel]
 
 -- > We assume that all inputs are well-formed.
+-- >
+-- > Each case is a direct translation from the algorithm in the specification.
 parse' :: String -> Stack -> XML
 parse' "" (Element _ _ (xml : _) : _)
  = xml
@@ -173,6 +186,10 @@ expandXSL xsl source
   where
     root = Element "/" [] [source]
 
+-- > The `context` keeps track of the current position in the XML tree. The only
+-- > place where the context is modified is in the `for-each` case, where it is
+-- > set to each of the elements in the list of elements selected by the
+-- > `select` attribute.
 expandXSL' :: Context -> XSL -> [XML]
 expandXSL' context xsl = case xsl of
   Element "value-of" [("select", value)] _
@@ -185,13 +202,18 @@ expandXSL' context xsl = case xsl of
   xml
     -> [xml]
   where
+    -- > Split a path into its components; '.' is ignored since it is already
+    -- > the current directory.
     breakPath ""               = []
     breakPath path             = case break (== '/') path of
       ("", y)    -> breakPath y
       (".", y)   -> breakPath y
       (x, "")    -> [x]
       (x, _ : y) -> x : breakPath y
-    -- > The following are partial functions that assume the path is well-formed
+    -- > The following are partial functions that assume the path is 
+    -- > well-formed. `getElem` returns the textual part of the first element
+    -- > that matches the path, and `getDescendent` returns all elements that
+    -- > match the path.
     getElem [] xml             = getValue xml
     getElem ['@' : attr] xml   = Text $ getAttribute attr xml
     getElem (x : xs) xml       = getElem xs (getChild x xml)
