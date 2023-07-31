@@ -30,3 +30,4 @@ If there's any issue or doubt on running the solutions, you are more than welcom
 | 2019 | `:m Test Year2019.SOL Year2019.TestData Year2019.Types`                          |
 | 2018 | `:m Test Year2018.CP`                                                            |
 | 2017 | `:m Test Year2017.DC`                                                            |
+| 2016 | `:m Test Year2016.Exam`                                                          |

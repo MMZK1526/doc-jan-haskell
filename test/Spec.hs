@@ -10,6 +10,9 @@ import qualified Year2022.SC as Y2022
 
 main :: IO ()
 main = do
+  putStrLn "Year 2016 Tests: "
+  Y2016.tester
+  putStrLn "Year 2016 Tests Done!"
   putStrLn "Year 2017 Tests: "
   Y2017.tester
   putStrLn "Year 2017 Tests Done!"

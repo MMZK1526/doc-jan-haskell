@@ -1,4 +1,5 @@
 {-# LANGUAGE BlockArguments #-}
+{-# LANGUAGE InstanceSigs #-}
 
 module Year2016.Exam where
 
@@ -16,8 +17,10 @@ module Year2016.Exam where
 import Data.Char
 import Data.Maybe
 
+import Control.Monad.IO.Class
 import Control.Monad.Trans.State
 import Data.Bifunctor
+import Test
 
 type Name = String
 
@@ -445,3 +448,60 @@ composersXSL
       \</for-each>\
       \</ul>\
     \</for-each>"
+
+---------------------------------------------------------
+-- Test & Helpers
+
+tester :: IO ()
+tester = runTest do
+  let (.==.) = with EqXML (==.)
+  label "Test 'allSame'" do
+    skipSpace "\n \n\nsome \n \n text" ==. "some \n \n text"
+  label "Test 'getAttribute'" do
+    getAttribute "x" x2 ==. "1"
+    getAttribute "x" (Text "t") ==. ""
+  label "Test 'getChildren'" do
+    getChildren "b" x2 ==. [Element "b" [] [Text "A"], Element "b" [] [Text "B"]]
+    getChildren "c" x2 ==. []
+  label "Test 'getChild'" do
+    getChild "b" x2 ==. Element "b" [] [Text "A"]
+    getChild "c" x2 ==. Text ""
+  label "Test 'addChild'" do
+    addChild (Text "B") (Element "a" [] [Text "A"]) ==. Element "a" [] [Text "A", Text "B"]
+  label "Test 'getValue'" do
+    getValue x1 ==. Text "A"
+    getValue x2 ==. Text "AB"
+  label "Test 'parse" do
+    parse xsl1 ==. xsl1Parsed
+    parse xsl2 ==. xsl2Parsed
+    parse xsl3 ==. xsl3Parsed
+    parse xsl4 ==. xsl4Parsed
+    parse xsl5 ==. xsl5Parsed
+    parse xsl6 ==. xsl6Parsed
+    parse xsl7 ==. xsl7Parsed
+    parse xsl8 ==. xsl8Parsed
+    parse xsl9 ==. xsl9Parsed
+    parse films ==. filmsParsed
+  label "Test 'expandXSL'" do
+    liftIO (parseFile "src/Year2016/filmTable.html") >>= (.==. parse (showXMLs (expandXSL (parse filmsXSL) filmsParsed)))
+    liftIO (parseFile "src/Year2016/composerList.html") >>= (.==. parse (showXMLs (expandXSL (parse composersXSL) filmsParsed)))
+
+parseFile :: FilePath -> IO XML
+parseFile path = do
+  contents <- readFile path
+  pure $ parse contents
+
+newtype EqXML = EqXML { unEQ :: XML }
+
+instance Eq EqXML where
+  (==) :: EqXML -> EqXML -> Bool
+  EqXML x1 == EqXML x2 = equals x1 x2
+    where
+      equals (Text t1) (Text t2)
+        = skipSpace t1 == skipSpace t2
+      equals (Element name1 attrs1 children1) (Element name2 attrs2 children2)
+        = name1 == name2 && attrs1 == attrs2 && and (zipWith equals children1 children2)
+
+instance Show EqXML where
+  show :: EqXML -> String
+  show (EqXML xml) = showXML xml
