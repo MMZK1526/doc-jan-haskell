@@ -42,6 +42,7 @@ test-suite test
     main-is:           Spec.hs
     other-modules:
         Test,
+        Year2015.Exam,
         Year2016.Exam,
         Year2017.DC,
         Year2018.CP,
