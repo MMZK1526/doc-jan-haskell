@@ -95,8 +95,11 @@ updateVar (v, val) ((v', (scope, val')) : bs)
 
 applyOp :: Op -> Value -> Value -> Value
 -- Pre: The values have the appropriate types (I or A) for each primitive
-applyOp 
-  = undefined
+applyOp Add (I i) (I j) = I $ i + j
+applyOp Mul (I i) (I j) = I $ i * j
+applyOp Less (I i) (I j) = I $ if i < j then 1 else 0
+applyOp Equal (I i) (I j) = I $ if i == j then 1 else 0
+applyOp Index (A arr) (I i) = I (fromMaybe 0 $ lookup i arr)
 
 bindArgs :: [Id] -> [Value] -> State
 -- Pre: the lists have the same length
