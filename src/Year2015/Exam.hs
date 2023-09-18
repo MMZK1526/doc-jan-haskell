@@ -30,11 +30,11 @@ data Value = I Int | A [(Int, Int)]
 data Op = Add | Mul | Less | Equal | Index
           deriving (Eq, Show)
 
-data Exp = Const Value | 
-           Var Id | 
+data Exp = Const Value |
+           Var Id |
            OpApp Op Exp Exp |
            Cond Exp Exp Exp |
-           FunApp Id [Exp] 
+           FunApp Id [Exp]
          deriving (Eq, Show)
 
 type FunDef = (Id, ([Id], Exp))
@@ -46,7 +46,7 @@ data Statement = Assign Id Exp |
                  If Exp Block Block |
                  While Exp Block |
                  Call Id Id [Exp] |
-                 Return Exp 
+                 Return Exp
                deriving (Eq, Show)
 
 type ProcDef = (Id, ([Id], Block))
@@ -103,8 +103,7 @@ applyOp Index (A arr) (I i) = I (fromMaybe 0 $ lookup i arr)
 
 bindArgs :: [Id] -> [Value] -> State
 -- Pre: the lists have the same length
-bindArgs
-  = undefined
+bindArgs = zipWith (\v val -> (v, (Local, val)))
 
 evalArgs :: [Exp] -> [FunDef] -> State -> [Value]
 evalArgs
@@ -113,7 +112,7 @@ evalArgs
 eval :: Exp -> [FunDef] -> State -> Value
 -- Pre: All expressions are well formed
 -- Pre: All variables referenced have bindings in the given state
-eval 
+eval
   = undefined
 
 ---------------------------------------------------------------------
@@ -123,25 +122,25 @@ executeStatement :: Statement -> [FunDef] -> [ProcDef] -> State -> State
 -- Pre: All statements are well formed 
 -- Pre: For array element assignment (AssignA) the array variable is in scope,
 --      i.e. it has a binding in the given state
-executeStatement 
+executeStatement
   = undefined
 
 executeBlock :: Block -> [FunDef] -> [ProcDef] -> State -> State
 -- Pre: All code blocks and associated statements are well formed
-executeBlock 
+executeBlock
   = undefined
 
 ---------------------------------------------------------------------
 -- Part IV
 
 translate :: FunDef -> Id -> [(Id, Id)] -> ProcDef
-translate (name, (as, e)) newName nameMap 
+translate (name, (as, e)) newName nameMap
   = (newName, (as, b ++ [Return e']))
   where
-    (b, e', ids') = translate' e nameMap ['$' : show n | n <- [1..]] 
+    (b, e', ids') = translate' e nameMap ['$' : show n | n <- [1..]]
 
 translate' :: Exp -> [(Id, Id)] -> [Id] -> (Block, Exp, [Id])
-translate' 
+translate'
   = undefined
 
 ---------------------------------------------------------------------
@@ -150,9 +149,9 @@ translate'
 -- A helpful predefined lookUp function...
 lookUp :: (Eq a, Show a) => a -> [(a, b)] -> b
 lookUp x t
-  = fromMaybe (error ("\nAttempt to lookUp " ++ show x ++ 
-                      " in a table that only has the bindings: " ++ 
-                      show (map fst t))) 
+  = fromMaybe (error ("\nAttempt to lookUp " ++ show x ++
+                      " in a table that only has the bindings: " ++
+                      show (map fst t)))
               (lookup x t)
 
  -- Turns an int into an Exp...
@@ -162,7 +161,7 @@ intToExp n
 
 -- Turns a list of ints into an array Exp...
 listToExp :: [Int] -> Exp
-listToExp 
+listToExp
   = Const . listToVal
 
 -- Turns a list of ints into an array Value...
@@ -179,7 +178,7 @@ listToVal xs
 
 memoise :: Id -> Id -> Id -> Id -> Id -> ProcDef
 memoise p a f pt mt
-  = (p, 
+  = (p,
      ([a], [If (OpApp Equal (OpApp Index (Var pt) (Var a)) (Const (I 0)))
                [Call "x" f [Var a],
                 AssignA pt (Var a) (Const (I 1)),
@@ -196,17 +195,17 @@ memoise p a f pt mt
 -- Predefined States, arrays and expressions for testing...
 
 sampleState, gState, fibState :: State
-sampleState 
+sampleState
   = [("x", (Local, I 5)), ("y", (Global, I 2)), ("a", (Global, listToVal [4,2,7]))]
 
-gState 
+gState
   = [("gSum", (Global, I 0))]
 
-fibState 
+fibState
   = [("fibPres", (Global, A [])), ("fibTab", (Global, A []))]
 
 sampleArray :: Exp
-sampleArray 
+sampleArray
   = Const (listToVal [9,5,7,1])
 
 e1, e2, e3, e4, e5 :: Exp
@@ -234,7 +233,7 @@ fac
   = ("fac",
      (["n"], Cond (OpApp Equal (Var "n") (intToExp 0))
                   (intToExp 1)
-                  (OpApp Mul (Var "n") 
+                  (OpApp Mul (Var "n")
                              (FunApp "fac" [OpApp Add (Var "n") (intToExp (-1))])))
     )
 
@@ -255,7 +254,7 @@ sumA
 -- Vanilla Haskell fib
 fibH :: Int -> Int
 -- Pre: n > 0
-fibH n 
+fibH n
   = if n < 3 then 1 else fibH (n-1) + fibH (n-2)
 
 -- fib in the purely functional subset
@@ -287,7 +286,7 @@ testFun
 -- that is assumed to be in scope when the procedure is called...
 gAdd :: ProcDef
 gAdd
-  = ("gAdd", 
+  = ("gAdd",
      (["x", "y"], [Assign "gSum" (OpApp Add (Var "x") (Var "y"))])
     )
 
@@ -299,7 +298,7 @@ sumA'
                    Assign "i" (Const (I 0)),
                    Assign "limit" (OpApp Add (Var "n") (Const (I 1))),
                    While (OpApp Less (Var "i") (Var "limit"))
-                         [Assign "s" (OpApp Add (Var "s") 
+                         [Assign "s" (OpApp Add (Var "s")
                                                 (OpApp Index (Var "a") (Var "i"))),
                           Assign "i" (OpApp Add (Var "i") (Const (I 1)))
                          ],
@@ -310,12 +309,12 @@ sumA'
 -- A procedural version of fib...
 fibP :: ProcDef
 -- Pre: n > 0
-fibP 
-  = ("fibP", 
-     (["n"], [If (OpApp Less (Var "n") (Const (I 3))) 
+fibP
+  = ("fibP",
+     (["n"], [If (OpApp Less (Var "n") (Const (I 3)))
                  [Return (Const (I 1))]
-                 [Call "f1" "fibP" [OpApp Add (Var "n") (Const (I (-1)))], 
-                  Call "f2" "fibP" [OpApp Add (Var "n") (Const (I (-2)))], 
+                 [Call "f1" "fibP" [OpApp Add (Var "n") (Const (I (-1)))],
+                  Call "f2" "fibP" [OpApp Add (Var "n") (Const (I (-2)))],
                   Return (OpApp Add (Var "f1") (Var "f2"))
                  ]
              ]
@@ -325,13 +324,13 @@ fibP
 fibManager :: ProcDef
 fibManager
   = ("fibManager",
-     (["n"], [If (OpApp Equal (OpApp Index (Var "fibPres") (Var "n")) 
-                              (Const (I 0))) 
-                 [Call "x" "fibM" [Var "n"], 
-                  AssignA "fibPres" (Var "n") (Const (I 1)), 
+     (["n"], [If (OpApp Equal (OpApp Index (Var "fibPres") (Var "n"))
+                              (Const (I 0)))
+                 [Call "x" "fibM" [Var "n"],
+                  AssignA "fibPres" (Var "n") (Const (I 1)),
                   AssignA "fibTab" (Var "n") (Var "x")
-                 ] 
-                 [], 
+                 ]
+                 [],
               Return (OpApp Index (Var "fibTab") (Var "n"))
              ]
      )
@@ -340,8 +339,8 @@ fibManager
 fibM :: ProcDef
 -- Pre: n > 0
 -- The value of fibMGenerator below
-fibM 
-  = ("fibM", 
+fibM
+  = ("fibM",
      (["n"], [If (OpApp Less (Var "n") (Const (I 3)))
                  [Assign "$3" (Const (I 1))]
                  [Call "$1" "fibManager" [OpApp Add (Var "n") (Const (I (-1)))],
@@ -358,15 +357,15 @@ fibM
 
 -- This instantiates the table manager template (predefined)...
 fibTableManager :: ProcDef
-fibTableManager 
+fibTableManager
   = memoise "fibManager" "n" "fibM" "fibPres" "fibTab"
 
 -- This uses the translate function to build the procedural, memoised,
 -- version of fib...
 fibMGenerator :: ProcDef
-fibMGenerator 
-  = translate fib "fibM" [("fib", "fibManager")] 
-                   
+fibMGenerator
+  = translate fib "fibM" [("fib", "fibManager")]
+
 
 -- Useful predefined executors...
 
@@ -392,13 +391,13 @@ execSumA' a n
 
 execGlobalSumA' :: [Int] -> Int -> State
 execGlobalSumA' a n
-  = executeBlock [Call "s" "sumA'" [listToExp a, intToExp n]] 
+  = executeBlock [Call "s" "sumA'" [listToExp a, intToExp n]]
                  [] [sumA'] [("s", (Global, I 0))]
 
 execFibP :: Int -> State
-execFibP n 
+execFibP n
   = executeBlock [Call "f" "fibP" [intToExp n]] [] [fibP] fibState
 
 execFibM :: Int -> State
-execFibM n 
+execFibM n
   = executeBlock [Call "f" "fibM" [intToExp n]] [] [fibM, fibManager] fibState
