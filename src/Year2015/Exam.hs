@@ -106,8 +106,7 @@ bindArgs :: [Id] -> [Value] -> State
 bindArgs = zipWith (\v val -> (v, (Local, val)))
 
 evalArgs :: [Exp] -> [FunDef] -> State -> [Value]
-evalArgs
-  = undefined
+evalArgs exps defs st = map (\exp -> eval exp defs st) exps
 
 eval :: Exp -> [FunDef] -> State -> Value
 -- Pre: All expressions are well formed
