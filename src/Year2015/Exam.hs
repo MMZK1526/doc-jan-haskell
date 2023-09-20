@@ -11,13 +11,13 @@ import Data.Maybe
 -- Boolean-valued expressions will always evaluate to either 0 (false) or 1
 -- (true).
 --
--- In an array element assignment the array being assigned to will always be 
+-- In an array element assignment the array being assigned to will always be
 -- in scope.
 --
--- In a procedure call of the form Call x p es the procedure p will always exit 
+-- In a procedure call of the form Call x p es the procedure p will always exit
 -- via a Return statement.
 --
--- A Return statement will always be the last statement to be executed in a 
+-- A Return statement will always be the last statement to be executed in a
 -- procedure's defining code block (there is no `dead code').
 --
 
@@ -75,7 +75,7 @@ getGlobals = filter (\(_, (scope, _)) -> scope == Global)
 
 assignArray :: Value -> Value -> Value -> Value
 -- The arguments are the array, index and (new) value respectively
--- Pre: The three values have the appropriate value types (array (A), 
+-- Pre: The three values have the appropriate value types (array (A),
 --      integer (I) and integer (I)) respectively.
 assignArray arr i val = A $ worker arr i val
   where
@@ -111,14 +111,24 @@ evalArgs exps defs st = map (\exp -> eval exp defs st) exps
 eval :: Exp -> [FunDef] -> State -> Value
 -- Pre: All expressions are well formed
 -- Pre: All variables referenced have bindings in the given state
-eval
-  = undefined
+eval (Const c) _ _            = c
+eval (Var v) _ st             = getValue v st
+eval (OpApp op e e') defs st  = applyOp op (eval e defs st) (eval e' defs st)
+eval (Cond cond e e') defs st = case eval cond defs st of
+  I 0 -> eval e' defs st
+  _   -> eval e defs st
+eval (FunApp f exps) defs st  = eval e defs st'
+  where
+    (as, e) = lookUp f defs
+    st'     = getLocals st
+           ++ bindArgs as (evalArgs exps defs st)
+           ++ getGlobals st
 
 ---------------------------------------------------------------------
 -- Part III
 
 executeStatement :: Statement -> [FunDef] -> [ProcDef] -> State -> State
--- Pre: All statements are well formed 
+-- Pre: All statements are well formed
 -- Pre: For array element assignment (AssignA) the array variable is in scope,
 --      i.e. it has a binding in the given state
 executeStatement
@@ -168,11 +178,11 @@ listToVal :: [Int] -> Value
 listToVal xs
   = A (zip [0..] xs)
 
--- memoise generates a procedure that caches values computed by function f.  
--- In general f will be a variant of some originally recursive function 
+-- memoise generates a procedure that caches values computed by function f.
+-- In general f will be a variant of some originally recursive function
 -- that calls the procedure generated here (named p) instead of itself.
 -- Arguments:
---    p = procedure name; a = argument name; f = function variant; 
+--    p = procedure name; a = argument name; f = function variant;
 --    pt = 'isPresent' table; mt = memo table.
 
 memoise :: Id -> Id -> Id -> Id -> Id -> ProcDef
@@ -281,7 +291,7 @@ testFun
 ---------------------------------------------------------------------
 -- Example procedures for testing...
 
--- Add two integers and assign the result to a global variable, gSum, 
+-- Add two integers and assign the result to a global variable, gSum,
 -- that is assumed to be in scope when the procedure is called...
 gAdd :: ProcDef
 gAdd
