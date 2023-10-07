@@ -28,7 +28,7 @@ library
         Year2022.SC,
         Year2022.Types
     build-depends:
-        base >= 4.16.4 && < 4.17,
+        base,
         mtl >= 2.2.2 && < 2.3,
         transformers >= 0.5.6 && < 0.6,
     hs-source-dirs:   src
