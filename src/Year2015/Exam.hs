@@ -1,5 +1,10 @@
+{-# LANGUAGE BlockArguments #-}
+
 module Year2015.Exam where
 
+import Control.Monad
+import Control.Monad.Trans.Reader
+import qualified Control.Monad.Trans.State as S
 import Data.Maybe
 
 -- All programs are assumed to be well-formed in the following sense:
@@ -160,8 +165,26 @@ translate (name, (as, e)) newName nameMap
     (b, e', ids') = translate' e nameMap ['$' : show n | n <- [1..]]
 
 translate' :: Exp -> [(Id, Id)] -> [Id] -> (Block, Exp, [Id])
-translate'
-  = undefined
+translate' exp nameMap ids
+  = uncurry' $ runReader (S.runStateT (worker exp) ids) nameMap
+  where
+    uncurry' ((a, b), c)   = (a, b, c)
+    getFresh               = S.state $ \(i : is) -> (i, is)
+    worker (Const c)       = pure ([], Const c)
+    worker (Var v)         = pure ([], Var v)
+    worker (OpApp op e e') = do
+      (b, e1)  <- worker e
+      (b', e2) <- worker e'
+      pure (b ++ b', OpApp op e1 e2)
+    worker (Cond cond e e') = do
+      (b, cond') <- worker cond
+      (b', e1)   <- worker e
+      (b'', e2)  <- worker e'
+      i          <- getFresh
+      pure (b ++ [If cond' (b' ++ [Assign i e1]) (b'' ++ [Assign i e2])], Var i)
+    worker (FunApp f exps) = do
+      i <- getFresh
+      pure ([Call i (lookUp f nameMap) exps], Var i)
 
 ---------------------------------------------------------------------
 -- PREDEFINED FUNCTIONS
