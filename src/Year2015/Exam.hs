@@ -120,9 +120,7 @@ eval (Cond cond e e') defs st = case eval cond defs st of
 eval (FunApp f exps) defs st  = eval e defs st'
   where
     (as, e) = lookUp f defs
-    st'     = getLocals st
-           ++ bindArgs as (evalArgs exps defs st)
-           ++ getGlobals st
+    st'     = bindArgs as (evalArgs exps defs st) ++ st
 
 ---------------------------------------------------------------------
 -- Part III
@@ -131,13 +129,26 @@ executeStatement :: Statement -> [FunDef] -> [ProcDef] -> State -> State
 -- Pre: All statements are well formed
 -- Pre: For array element assignment (AssignA) the array variable is in scope,
 --      i.e. it has a binding in the given state
-executeStatement
-  = undefined
+executeStatement stmt fDefs pDefs st = case stmt of
+  Assign v e    -> updateVar (v, eval e fDefs st) st
+  AssignA v i e -> updateVar (v, assignArray (getValue v st) (eval i fDefs st) (eval e fDefs st)) st
+  If e b1 b2    -> case eval e fDefs st of
+    I 0 -> executeBlock b2 fDefs pDefs st
+    _   -> executeBlock b1 fDefs pDefs st
+  While e b     -> case eval e fDefs st of
+    I 0 -> st
+    _   -> executeStatement stmt fDefs pDefs (executeBlock b fDefs pDefs st)
+  Call v p exps -> let (as, b) = lookUp p pDefs
+                       st'     = executeBlock b fDefs pDefs (bindArgs as (evalArgs exps fDefs st) ++ st)
+                   in  case v of
+    "" -> st'
+    _  -> updateVar (v, getValue "$res" st') st'
+  Return exp    -> updateVar ("$res", eval exp fDefs st) st
 
 executeBlock :: Block -> [FunDef] -> [ProcDef] -> State -> State
 -- Pre: All code blocks and associated statements are well formed
-executeBlock
-  = undefined
+executeBlock [] _ _ st                     = st
+executeBlock (stmt : stmts) fDefs pDefs st = executeBlock stmts fDefs pDefs (executeStatement stmt fDefs pDefs st)
 
 ---------------------------------------------------------------------
 -- Part IV
