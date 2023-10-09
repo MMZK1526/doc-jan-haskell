@@ -462,6 +462,21 @@ tester = runTest do
     getGlobals sampleState ==. [("y", (Global, I 2)), ("a", (Global, A [(0, 4), (1, 2), (2, 7)]))]
   label "Test 'assignArray'" do
     assignArray (getValue "a" sampleState) (I 2) (I 1) .==. A [(2, 1), (0, 4), (1, 2)]
+  label "Test 'applyOp" do
+    applyOp Add (I 6) (I (-2)) ==. I 4
+    applyOp Mul (I 3) (I 4) ==. I 12
+    applyOp Less (I 7) (I 0) ==. I 0
+    applyOp Equal (I 2) (I 2) ==. I 1
+    applyOp Index (A [(1, 1),(0, 3)]) (I 0) ==. I 3
+    applyOp Index (A [(1, 1),(0, 3)]) (I 2) ==. I 0
+  label "Test 'bindArgs" do
+    bindArgs ["x", "a"] [I 6, A [(1, 1), (0, 3)]] ==. [("x" ,(Local, I 6)), ("a", (Local, A [(1, 1), (0, 3)]))]
+  label "Test 'eval'" do
+    eval (Const (I 1)) [] sampleState ==. I 1
+    eval (Var "y") [] sampleState ==. I 2
+    eval (OpApp Add (Var "x") (Const (I 2))) [] sampleState ==. I 7
+    eval (Cond (Const (I 1)) (Var "x") (Const (I 9))) [] sampleState ==. I 5
+    eval (FunApp "fib" [Const (I 6)]) [fib] sampleState ==. I 8
 
 newtype EqValue = EqValue { unEQ :: Value }
 
