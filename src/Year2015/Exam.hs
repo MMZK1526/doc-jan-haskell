@@ -1,11 +1,14 @@
 {-# LANGUAGE BlockArguments #-}
+{-# LANGUAGE InstanceSigs #-}
 
 module Year2015.Exam where
 
 import Control.Monad
 import Control.Monad.Trans.Reader
 import qualified Control.Monad.Trans.State as S
+import Data.List
 import Data.Maybe
+import Test
 
 -- All programs are assumed to be well-formed in the following sense:
 --
@@ -444,3 +447,31 @@ execFibP n
 execFibM :: Int -> State
 execFibM n
   = executeBlock [Call "f" "fibM" [intToExp n]] [] [fibM, fibManager] fibState
+
+---------------------------------------------------------
+-- Test & Helpers
+
+tester :: IO ()
+tester = runTest do
+  let (.==.) = with EqValue (==.)
+  label "Test 'getValue'" do
+    getValue "x" sampleState ==. I 5
+  label "Test 'getLocals'" do
+    getLocals sampleState ==. [("x", (Local, I 5))]
+  label "Test 'getGlobals'" do
+    getGlobals sampleState ==. [("y", (Global, I 2)), ("a", (Global, A [(0, 4), (1, 2), (2, 7)]))]
+  label "Test 'assignArray'" do
+    assignArray (getValue "a" sampleState) (I 2) (I 1) .==. A [(2, 1), (0, 4), (1, 2)]
+
+newtype EqValue = EqValue { unEQ :: Value }
+
+instance Eq EqValue where
+  (==) :: EqValue -> EqValue -> Bool
+  EqValue (I i) == EqValue (I j)   = i == j
+  EqValue (A xs) == EqValue (A ys) = sort xs == sort ys
+  _ == _                           = False
+
+instance Show EqValue where
+  show :: EqValue -> String
+  show (EqValue (I i))   = show i
+  show (EqValue (A xs))  = show xs
