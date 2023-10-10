@@ -480,6 +480,8 @@ tester = runTest do
   label "Test 'executeBlock'" do
     execSumA' [9, 5, 7, 1] 3 ==. [("s", (Local, I 22))]
     execGlobalSumA' [9,5,7,1] 3 ==. [("s", (Global, I 22))]
+  label "Test 'translate'" do
+    fibMGenerator ==. fibM
 
 newtype EqValue = EqValue { unEQ :: Value }
 
