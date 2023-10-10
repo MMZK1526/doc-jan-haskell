@@ -2,9 +2,8 @@
 {-# LANGUAGE InstanceSigs #-}
 
 module Year2015.Exam where
-import Debug.Trace
+
 import Control.Monad.Trans.Class
-import Control.Monad.Trans.Reader
 import qualified Control.Monad.Trans.State.Strict as S
 import Data.List
 import Data.Maybe
@@ -137,7 +136,7 @@ executeStatement :: Statement -> [FunDef] -> [ProcDef] -> State -> State
 -- Pre: All statements are well formed
 -- Pre: For array element assignment (AssignA) the array variable is in scope,
 --      i.e. it has a binding in the given state
-executeStatement stmt' fDefs pDefs st' = runReader (S.execStateT (worker stmt') st') (fDefs, pDefs)
+executeStatement stmt' fDefs pDefs st' = S.execState (worker stmt') st'
   where
     worker (Assign v e)     = do
       st <- S.get
@@ -147,13 +146,11 @@ executeStatement stmt' fDefs pDefs st' = runReader (S.execStateT (worker stmt') 
       let arr = assignArray (getValue v st) (eval i fDefs st) (eval e fDefs st)
       S.put $ updateVar (v, arr) st
     worker (If e b1 b2)     = do
-      (fDefs, pDefs) <- lift ask
       st             <- S.get
       case eval e fDefs st of
         I 0 -> mapM_ worker b2
         _   -> mapM_ worker b1
     worker stmt@(While e b) = do
-      (fDefs, pDefs) <- lift ask
       st             <- S.get
       case eval e fDefs st of
         I 0 -> pure ()
@@ -187,8 +184,7 @@ translate (name, (as, e)) newName nameMap
     (b, e', ids') = translate' e nameMap ['$' : show n | n <- [1..]]
 
 translate' :: Exp -> [(Id, Id)] -> [Id] -> (Block, Exp, [Id])
-translate' exp nameMap ids
-  = uncurry' $ runReader (S.runStateT (worker exp) ids) nameMap
+translate' exp nameMap ids = uncurry' (S.runState (worker exp) ids)
   where
     uncurry' ((a, b), c)   = (a, b, c)
     getFresh               = S.state $ \(i : is) -> (i, is)

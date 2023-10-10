@@ -20,7 +20,6 @@ module Year2019.SOL where
 -- > the original one. This is what modern SAT solvers do.
 
 import Control.Monad
-import Control.Monad.Trans.Reader
 import Control.Monad.Trans.State
 import Data.List
 import Data.Tuple
@@ -96,14 +95,14 @@ toCNF = toCNF' . toNNF
 -- 4 marks
 flatten :: CNF -> CNFRep
 -- > The idea is very similar to parser combinators :)
-flatten f = runReader (flattenAnd f) (idMap f)
+flatten f = flattenAnd f
   where
-    flattenAnd (And f f') = liftM2 (++) (flattenAnd f) (flattenAnd f')
-    flattenAnd f          = pure <$> flattenOr f
-    flattenOr (Or f f')   = liftM2 (++) (flattenOr f) (flattenOr f')
-    flattenOr f           = pure <$> flattenVar f
-    flattenVar (Var v)    = lookUp v <$> ask
-    flattenVar (Not f)    = negate <$> flattenVar f
+    flattenAnd (And f f') = flattenAnd f ++ flattenAnd f'
+    flattenAnd f          = [flattenOr f]
+    flattenOr (Or f f')   = flattenOr f ++ flattenOr f'
+    flattenOr f           = [flattenVar f]
+    flattenVar (Var v)    = lookUp v (idMap f)
+    flattenVar (Not f)    = negate (flattenVar f)
 
 
 --------------------------------------------------------------------------
