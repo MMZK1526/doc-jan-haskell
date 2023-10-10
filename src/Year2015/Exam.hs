@@ -149,8 +149,8 @@ executeStatement stmt fDefs pDefs st = case stmt of
   Call v p exps -> let (as, b) = lookUp p pDefs
                        st'     = executeBlock b fDefs pDefs (bindArgs as (evalArgs exps fDefs st) ++ getGlobals st)
                    in  case v of
-    "" -> getGlobals st'
-    _  -> updateVar (v, getValue "$res" st') (getGlobals st')
+    "" -> getLocals st ++ getGlobals st'
+    _  -> updateVar (v, getValue "$res" st') (getLocals st ++ getGlobals st')
   Return exp    -> updateVar ("$res", eval exp fDefs st) st
 
 executeBlock :: Block -> [FunDef] -> [ProcDef] -> State -> State
