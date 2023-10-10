@@ -147,10 +147,10 @@ executeStatement stmt fDefs pDefs st = case stmt of
     I 0 -> st
     _   -> executeStatement stmt fDefs pDefs (executeBlock b fDefs pDefs st)
   Call v p exps -> let (as, b) = lookUp p pDefs
-                       st'     = executeBlock b fDefs pDefs (bindArgs as (evalArgs exps fDefs st) ++ st)
+                       st'     = executeBlock b fDefs pDefs (bindArgs as (evalArgs exps fDefs st) ++ getGlobals st)
                    in  case v of
-    "" -> st'
-    _  -> updateVar (v, getValue "$res" st') st'
+    "" -> getGlobals st'
+    _  -> updateVar (v, getValue "$res" st') (getGlobals st')
   Return exp    -> updateVar ("$res", eval exp fDefs st) st
 
 executeBlock :: Block -> [FunDef] -> [ProcDef] -> State -> State
@@ -477,6 +477,9 @@ tester = runTest do
     eval (OpApp Add (Var "x") (Const (I 2))) [] sampleState ==. I 7
     eval (Cond (Const (I 1)) (Var "x") (Const (I 9))) [] sampleState ==. I 5
     eval (FunApp "fib" [Const (I 6)]) [fib] sampleState ==. I 8
+  label "Test 'executeBlock'" do
+    execSumA' [9, 5, 7, 1] 3 ==. [("s", (Local, I 22))]
+    execGlobalSumA' [9,5,7,1] 3 ==. [("s", (Global, I 22))]
 
 newtype EqValue = EqValue { unEQ :: Value }
 
