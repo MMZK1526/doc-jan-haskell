@@ -2,10 +2,10 @@
 {-# LANGUAGE InstanceSigs #-}
 
 module Year2015.Exam where
-
-import Control.Monad
+import Debug.Trace
+import Control.Monad.Trans.Class
 import Control.Monad.Trans.Reader
-import qualified Control.Monad.Trans.State as S
+import qualified Control.Monad.Trans.State.Strict as S
 import Data.List
 import Data.Maybe
 import Test
@@ -137,26 +137,45 @@ executeStatement :: Statement -> [FunDef] -> [ProcDef] -> State -> State
 -- Pre: All statements are well formed
 -- Pre: For array element assignment (AssignA) the array variable is in scope,
 --      i.e. it has a binding in the given state
-executeStatement stmt fDefs pDefs st = case stmt of
-  Assign v e    -> updateVar (v, eval e fDefs st) st
-  AssignA v i e -> updateVar (v, assignArray (getValue v st) (eval i fDefs st) (eval e fDefs st)) st
-  If e b1 b2    -> case eval e fDefs st of
-    I 0 -> executeBlock b2 fDefs pDefs st
-    _   -> executeBlock b1 fDefs pDefs st
-  While e b     -> case eval e fDefs st of
-    I 0 -> st
-    _   -> executeStatement stmt fDefs pDefs (executeBlock b fDefs pDefs st)
-  Call v p exps -> let (as, b) = lookUp p pDefs
-                       st'     = executeBlock b fDefs pDefs (bindArgs as (evalArgs exps fDefs st) ++ getGlobals st)
-                   in  case v of
-    "" -> getLocals st ++ getGlobals st'
-    _  -> updateVar (v, getValue "$res" st') (getLocals st ++ getGlobals st')
-  Return exp    -> updateVar ("$res", eval exp fDefs st) st
+executeStatement stmt' fDefs pDefs st' = runReader (S.execStateT (worker stmt') st') (fDefs, pDefs)
+  where
+    worker (Assign v e)     = do
+      st <- S.get
+      S.modify (updateVar (v, eval e fDefs st))
+    worker (AssignA v i e)  = do
+      st <- S.get
+      let arr = assignArray (getValue v st) (eval i fDefs st) (eval e fDefs st)
+      S.put $ updateVar (v, arr) st
+    worker (If e b1 b2)     = do
+      (fDefs, pDefs) <- lift ask
+      st             <- S.get
+      case eval e fDefs st of
+        I 0 -> mapM_ worker b2
+        _   -> mapM_ worker b1
+    worker stmt@(While e b) = do
+      (fDefs, pDefs) <- lift ask
+      st             <- S.get
+      case eval e fDefs st of
+        I 0 -> pure ()
+        _   -> mapM_ worker b >> worker stmt
+    worker (Call v p exps)  = do
+      st  <- S.get
+      let (as, b) = lookUp p pDefs
+      S.put $ bindArgs as (evalArgs exps fDefs st) ++ getGlobals st
+      mapM_ worker b
+      st' <- S.get
+      let st''    = getLocals st ++ getGlobals st'
+      S.put $ case v of
+        "" -> st''
+        _  -> updateVar (v, getValue "$res" st') st''
+    worker (Return exp)     = do
+      st <- S.get
+      S.modify (updateVar ("$res", eval exp fDefs st))
 
 executeBlock :: Block -> [FunDef] -> [ProcDef] -> State -> State
 -- Pre: All code blocks and associated statements are well formed
-executeBlock [] _ _ st                     = st
-executeBlock (stmt : stmts) fDefs pDefs st = executeBlock stmts fDefs pDefs (executeStatement stmt fDefs pDefs st)
+executeBlock b fDefs pDefs st
+  = foldl (\st' stmt -> executeStatement stmt fDefs pDefs st') st b
 
 ---------------------------------------------------------------------
 -- Part IV
