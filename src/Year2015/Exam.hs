@@ -3,7 +3,18 @@
 
 module Year2015.Exam where
 
-import Control.Monad.Trans.Class
+-- > The test this year shares some similarity to 2022's SuperCombinators (both
+-- > in terms of difficulty and the general idea). Since I was quite busy when
+-- > writing this solution, it tooks about a month to complete.
+-- >
+-- > The main difficulty of this test involves handling the scope (state) of
+-- > procedural calls as well as transforming the functional code into
+-- > procedural calls in Part 4.
+-- >
+-- > Again I utilised the State Monad to handle the state of the program. While
+-- > it is neither required nor taught in the modules, it does make the solution
+-- > easier to write and (arguably?) understand.
+
 import qualified Control.Monad.Trans.State.Strict as S
 import Data.List
 import Data.Maybe
@@ -136,7 +147,7 @@ executeStatement :: Statement -> [FunDef] -> [ProcDef] -> State -> State
 -- Pre: All statements are well formed
 -- Pre: For array element assignment (AssignA) the array variable is in scope,
 --      i.e. it has a binding in the given state
-executeStatement stmt' fDefs pDefs st' = S.execState (worker stmt') st'
+executeStatement stmt fDefs pDefs = S.execState (worker stmt)
   where
     worker (Assign v e)     = do
       st <- S.get
@@ -150,17 +161,19 @@ executeStatement stmt' fDefs pDefs st' = S.execState (worker stmt') st'
       case eval e fDefs st of
         I 0 -> mapM_ worker b2
         _   -> mapM_ worker b1
-    worker stmt@(While e b) = do
+    worker stmt'@(While e b) = do
       st             <- S.get
       case eval e fDefs st of
         I 0 -> pure ()
-        _   -> mapM_ worker b >> worker stmt
+        _   -> mapM_ worker b >> worker stmt'
     worker (Call v p exps)  = do
       st  <- S.get
       let (as, b) = lookUp p pDefs
+      -- > The state for the procedure should not include current local vars.
       S.put $ bindArgs as (evalArgs exps fDefs st) ++ getGlobals st
       mapM_ worker b
       st' <- S.get
+      -- > Remove the local variables from the callee's state.
       let st''    = getLocals st ++ getGlobals st'
       S.put $ case v of
         "" -> st''
@@ -188,6 +201,7 @@ translate' exp nameMap ids = uncurry' (S.runState (worker exp) ids)
   where
     uncurry' ((a, b), c)   = (a, b, c)
     getFresh               = S.state $ \(i : is) -> (i, is)
+    -- > worker returns a list of block and the final expression.
     worker (Const c)       = pure ([], Const c)
     worker (Var v)         = pure ([], Var v)
     worker (OpApp op e e') = do

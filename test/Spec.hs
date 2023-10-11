@@ -1,5 +1,6 @@
 {-# LANGUAGE BlockArguments #-}
 
+import qualified Year2015.Exam as Y2015
 import qualified Year2016.Exam as Y2016
 import qualified Year2017.DC as Y2017
 import qualified Year2018.CP as Y2018
@@ -10,6 +11,9 @@ import qualified Year2022.SC as Y2022
 
 main :: IO ()
 main = do
+  putStrLn "Year 2015 Tests: "
+  Y2015.tester
+  putStrLn "Year 2015 Tests Done!"
   putStrLn "Year 2016 Tests: "
   Y2016.tester
   putStrLn "Year 2016 Tests Done!"
