@@ -199,12 +199,12 @@ translate (name, (as, e)) newName nameMap
 translate' :: Exp -> [(Id, Id)] -> [Id] -> (Block, Exp, [Id])
 translate' exp nameMap ids = uncurry' (S.runState (worker exp) ids)
   where
-    uncurry' ((a, b), c)   = (a, b, c)
-    getFresh               = S.state $ \(i : is) -> (i, is)
+    uncurry' ((a, b), c)    = (a, b, c)
+    getFresh                = S.state $ \(i : is) -> (i, is)
     -- > worker returns a list of block and the final expression.
-    worker (Const c)       = pure ([], Const c)
-    worker (Var v)         = pure ([], Var v)
-    worker (OpApp op e e') = do
+    worker (Const c)        = pure ([], Const c)
+    worker (Var v)          = pure ([], Var v)
+    worker (OpApp op e e')  = do
       (b, e1)  <- worker e
       (b', e2) <- worker e'
       pure (b ++ b', OpApp op e1 e2)
@@ -214,7 +214,7 @@ translate' exp nameMap ids = uncurry' (S.runState (worker exp) ids)
       (b'', e2)  <- worker e'
       i          <- getFresh
       pure (b ++ [If cond' (b' ++ [Assign i e1]) (b'' ++ [Assign i e2])], Var i)
-    worker (FunApp f exps) = do
+    worker (FunApp f exps)  = do
       i <- getFresh
       pure ([Call i (lookUp f nameMap) exps], Var i)
 
