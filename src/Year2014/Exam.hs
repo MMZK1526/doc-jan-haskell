@@ -52,12 +52,23 @@ showRE' re
 
 lookUp :: Eq a => a -> [(a, b)] -> b
 --Pre: There is exactly one occurrence of the item being looked up.
-lookUp 
-  = undefined
+lookUp x ((x',y):xys)
+  | x == x'   = y
+  | otherwise = lookUp x xys
 
 simplify :: RE -> RE
-simplify
-  = undefined
+simplify (Seq re re')
+  = Seq (simplify re) (simplify re')
+simplify (Alt re re')
+  = Alt (simplify re) (simplify re')
+simplify (Rep re)
+  = Rep (simplify re)
+simplify (Plus re)
+  = Seq (simplify re) (Rep (simplify re))
+simplify (Opt re)
+  = Alt (simplify re) Null
+simplify re
+  = re
 
 --------------------------------------------------------
 -- Part II
