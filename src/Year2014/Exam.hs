@@ -74,30 +74,35 @@ simplify re
 -- Part II
 
 startState :: Automaton -> State
-startState
-  = undefined
+startState (s, _, _) = s
+
 terminalStates :: Automaton -> [State]
-terminalStates
-  = undefined
+terminalStates (_, ts, _) = ts
+
 transitions :: Automaton -> [Transition]
-transitions 
-  = undefined
+transitions (_, _, ts) = ts
 
 isTerminal :: State -> Automaton -> Bool
-isTerminal 
-  = undefined
+isTerminal s au = s `elem` terminalStates au
 
 transitionsFrom :: State -> Automaton -> [Transition]
-transitionsFrom
-  = undefined
+transitionsFrom s au = filter (\(s', _, _) -> s' == s) (transitions au)
 
 labels :: [Transition] -> [Label]
-labels 
-  = undefined
+labels ts = nub (map (\(_, _, l) -> l) ts) \\ [Eps]
 
 accepts :: Automaton -> String -> Bool
-accepts 
-  = undefined
+accepts au = accepts' (startState au)
+  where
+    try str (_, s, Eps) = accepts' s str
+    try (c : cs) (_, s, C c')
+      | c == c' = accepts' s cs
+    try _ _             = False
+    accepts' s str
+      | isTerminal s au = null str
+      | otherwise       = any (try str) trans
+      where
+        trans = transitionsFrom s au
 
 --------------------------------------------------------
 -- Part III
@@ -109,8 +114,21 @@ makeNDA re
     (transitions, k) = make (simplify re) 1 2 3
 
 make :: RE -> Int -> Int -> Int -> ([Transition], Int)
-make 
-  = undefined
+make Null m n k         = ([(m, n, Eps)], k)
+make (Term c) m n k     = ([(m, n, C c)], k)
+make (Seq re re') m n k = ((k, k + 1, Eps) : trans ++ trans', k'')
+  where
+    (trans, k')   = make re m k (k + 2)
+    (trans', k'') = make re' (k + 1) n k'
+make (Alt re re') m n k = (bases ++ trans ++ trans', k'')
+  where
+    bases         = [(m, k, Eps), (k + 1, n, Eps), (m, k + 2, Eps), (k + 3, n, Eps)]
+    (trans, k')   = make re k (k + 1) (k + 4)
+    (trans', k'') = make re' (k + 2) (k + 3) k'
+make (Rep re) m n k     = (bases ++ trans, k')
+  where
+    bases      = [(m, k, Eps), (k + 1, n, Eps), (k + 1, k, Eps), (m, n, Eps)]
+    (trans, k') = make re k (k + 1) (k + 2)
 
 --------------------------------------------------------
 -- Part IV
