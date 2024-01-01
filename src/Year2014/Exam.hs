@@ -1,7 +1,16 @@
+{-# LANGUAGE BlockArguments #-}
+{-# LANGUAGE TupleSections #-}
+
 module Year2014.Exam where
 
 import Data.Maybe
 import Data.List
+
+import Control.Monad
+import qualified Control.Monad.Trans.State as S
+import qualified Data.Map as M
+import Data.Set (Set)
+import qualified Data.Set as S
 
 data RE = Null   |
           Term Char |
@@ -138,17 +147,44 @@ type MetaState = [State]
 type MetaTransition = (MetaState, MetaState, Label)
 
 getFrontier :: State -> Automaton -> [Transition]
-getFrontier
-  = undefined
+getFrontier = (nub .) . worker
+  where
+    worker s au
+      | s `elem` terminalStates au = [(s, s, Eps)]
+      | otherwise                  = nes ++ frontiers
+      where
+        (es, nes) = partition (\(_, _, l) -> l == Eps) $ transitionsFrom s au
+        frontiers = concatMap (\(_, s', _) -> worker s' au) es
 
 groupTransitions :: [Transition] -> [(Label, [State])]
-groupTransitions
-  = undefined
+groupTransitions trans = M.assocs $ foldl worker initGroups trans
+  where
+    worker groups (_, _, Eps) = groups
+    worker groups (_, s', l)  = M.adjust (s' :) l groups
+    initGroups                = M.fromList $ map (, []) (labels trans)
 
 makeDA :: Automaton -> Automaton
 -- Pre: Any cycle in the NDA must include at least one non-Eps transition
-makeDA 
-  = undefined
+makeDA au@(s, ts, _) = (states M.! ((\(s, _, _) -> s) <$> initTrans), terminals, S.evalState (worker initTrans) M.empty)
+  where
+    terminals       = snd <$> filter (\(k, v) -> and [t `elem` k | t <- ts]) (M.assocs states)
+    initTrans       = getFrontier s au
+    (trans, states) = S.runState (worker initTrans) M.empty
+    worker trs      = do
+      let metaState = (\(s, _, _) -> s) <$> trs
+      metaStates <- S.get
+      if metaState `M.member` metaStates
+        then pure []
+        else do
+          S.put $ M.insert metaState (length metaStates + 1) metaStates
+          let groups = groupTransitions trs
+          curIndex <- S.gets (M.! metaState)
+          join <$> forM groups \(l, states) -> do
+            let trans        = nub $ concatMap (`getFrontier` au) states
+            result    <- worker trans
+            let newMetaState = (\(s, _, _) -> s) <$> trans
+            newIndex <- S.gets (M.! newMetaState)
+            pure $ (curIndex, newIndex, l) : result
 
 --------------------------------------------------------
 -- Test cases

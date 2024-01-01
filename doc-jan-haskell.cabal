@@ -31,6 +31,7 @@ library
         Year2022.Types
     build-depends:
         base,
+        containers,
         mtl >= 2.2.2 && < 2.3,
         transformers >= 0.5.6 && < 0.6,
     hs-source-dirs:   src
