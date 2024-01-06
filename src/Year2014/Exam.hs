@@ -1,4 +1,5 @@
 {-# LANGUAGE BlockArguments #-}
+{-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE TupleSections #-}
 
 module Year2014.Exam where
@@ -11,6 +12,7 @@ import qualified Control.Monad.Trans.State as S
 import qualified Data.Map as M
 import Data.Set (Set)
 import qualified Data.Set as S
+import Test
 
 data RE = Null   |
           Term Char |
@@ -263,3 +265,67 @@ nda5
 da5
   = (1,[2],[(1,2,C 'd'),(1,3,C 'a'),(2,2,C 'd'),(3,4,C 'b'),
             (4,2,C 'd')])
+
+---------------------------------------------------------
+-- Test & Helpers
+
+tester :: IO ()
+tester = runTest do
+  let (.==.) = with EqAutomaton (==.)
+  label "Test 'terminalStates'" do
+    terminalStates nda1 ==. [2]
+  label "Test 'isTerminal'" do
+    isTerminal 2 nda1 ==. True
+    isTerminal 3 da4 ==. True
+    isTerminal 5 nda2 ==. False
+  label "Test 'transitionsFrom'" do
+    transitionsFrom 5 ndaFigure ==. [(5, 7, Eps), (5, 9, Eps)]
+    transitionsFrom 10 nda3 ==. [(10, 6, C 'b')]
+  label "Test 'labels'" do
+    sort (labels [(1, 2, Eps)]) ==. []
+    sort (labels (transitions nda3)) ==. [C 'a', C 'b', C 'c']
+  label "Test 'accepts'" do
+    accepts nda1 "x1" ==. True
+    accepts nda1 "y1" ==. True
+    accepts nda1 "x2" ==. True
+    accepts nda1 "y2" ==. True
+    accepts nda1 "x" ==. False
+    accepts nda1 "y" ==. False
+    accepts nda1 "1" ==. False
+    accepts nda1 "2" ==. False
+    accepts nda2 "x" ==. True
+    accepts nda2 "x'" ==. True
+    accepts nda2 "x''" ==. True
+    accepts nda2 "x," ==. False
+    accepts nda3 "" ==. True
+    accepts nda3 "ab" ==. True
+    accepts nda3 "c" ==. True
+    accepts nda3 "abc" ==. True
+    accepts nda3 "abab" ==. True
+    accepts nda3 "abcab" ==. True
+    accepts nda3 "cab" ==. True
+    accepts nda3 "ac" ==. False
+    accepts nda3 "bc" ==. False
+  label "Test 'makeNDA'" do
+    makeNDA re1 ==. nda1
+    makeNDA re2 ==. nda2
+    makeNDA re3 ==. nda3
+    makeNDA re4 ==. nda4
+    makeNDA re5 ==. nda5
+  label "Test 'makeDA'" do
+    makeDA nda1 .==. da1
+    makeDA nda2 .==. da2
+    makeDA nda3 .==. da3
+    makeDA nda4 .==. da4
+    -- makeDA nda5 .==. da5
+
+newtype EqAutomaton = EqAutomaton { unEQ :: Automaton }
+
+instance Eq EqAutomaton where
+  (==) :: EqAutomaton -> EqAutomaton -> Bool
+  (==) (EqAutomaton (s1, ts1, trs1)) (EqAutomaton (s2, ts2, trs2))
+    = s1 == s2 && sort ts1 == sort ts2 && sort trs1 == sort trs2
+
+instance Show EqAutomaton where
+  show :: EqAutomaton -> String
+  show = show . unEQ
