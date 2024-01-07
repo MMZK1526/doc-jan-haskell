@@ -8,7 +8,10 @@ import Data.Maybe
 import Data.List
 
 import Control.Monad
+import Control.Monad.Trans.Class
+import Control.Monad.Trans.Maybe
 import qualified Control.Monad.Trans.State as S
+import qualified Data.IntMap as IM
 import qualified Data.Map as M
 import Data.Set (Set)
 import qualified Data.Set as S
@@ -317,15 +320,42 @@ tester = runTest do
     makeDA nda2 .==. da2
     makeDA nda3 .==. da3
     makeDA nda4 .==. da4
-    -- makeDA nda5 .==. da5
+    makeDA nda5 .==. da5
 
 newtype EqAutomaton = EqAutomaton { unEQ :: Automaton }
 
 instance Eq EqAutomaton where
   (==) :: EqAutomaton -> EqAutomaton -> Bool
-  (==) (EqAutomaton (s1, ts1, trs1)) (EqAutomaton (s2, ts2, trs2))
-    = s1 == s2 && sort ts1 == sort ts2 && sort trs1 == sort trs2
+  (==) a1@(EqAutomaton (s1, ts1, trs1)) a2@(EqAutomaton (s2, ts2, trs2))
+    = length ts1 == length ts2 && length trs1 == length trs2
+   && S.evalState (worker trs1 trs2) (IM.singleton s1 s2)
+    where
+      worker [] _                     = do
+        mapping <- S.get
+        pure $ case mapM (mapping IM.!?) ts1 of
+          Nothing -> False
+          Just ts -> sort ts == sort ts2
+      worker ((s1, s2, l) : trs) trs' = do
+        mapping <- S.get
+        or <$> forMContinue trs' \tr'@(s1', s2', l') -> do
+          guard $ l == l'
+          lift $ S.put mapping
+          case mapping IM.!? s1 of
+            Just img1 -> guard $ img1 == s1'
+            Nothing   -> lift $ S.modify (IM.insert s1 s1')
+          case mapping IM.!? s2 of
+            Just img2 -> guard $ img2 == s2'
+            Nothing   -> lift $ S.modify (IM.insert s2 s2')
+          lift $ worker trs (trs' \\ [tr'])
 
 instance Show EqAutomaton where
   show :: EqAutomaton -> String
   show = show . unEQ
+
+forMContinue :: Monad m => [a] -> (a -> MaybeT m b) -> m [b]
+forMContinue [] _ = pure []
+forMContinue (x : xs) f = do
+  r <- runMaybeT $ f x
+  case r of
+    Nothing -> forMContinue xs f
+    Just y  -> (y :) <$> forMContinue xs f
