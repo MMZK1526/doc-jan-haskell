@@ -170,9 +170,11 @@ groupTransitions trans = M.assocs $ foldl worker initGroups trans
 
 makeDA :: Automaton -> Automaton
 -- Pre: Any cycle in the NDA must include at least one non-Eps transition
-makeDA au@(s, ts, _) = (states M.! ((\(s, _, _) -> s) <$> initTrans), terminals, S.evalState (worker initTrans) M.empty)
+makeDA au@(s, ts, _) = ( states M.! ((\(s, _, _) -> s) <$> initTrans)
+                       , terminals, S.evalState (worker initTrans) M.empty )
   where
-    terminals       = snd <$> filter (\(k, v) -> and [t `elem` k | t <- ts]) (M.assocs states)
+    terminals       = snd <$> filter (\(k, v) -> and [t `elem` k | t <- ts])
+                                     (M.assocs states)
     initTrans       = getFrontier s au
     (trans, states) = S.runState (worker initTrans) M.empty
     worker trs      = do
