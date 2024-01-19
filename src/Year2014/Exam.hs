@@ -363,7 +363,7 @@ instance Show EqAutomaton where
   show = show . unEQ
 
 forMContinue :: Monad m => [a] -> (a -> MaybeT m b) -> m [b]
-forMContinue [] _ = pure []
+forMContinue [] _       = pure []
 forMContinue (x : xs) f = do
   r <- runMaybeT $ f x
   case r of
