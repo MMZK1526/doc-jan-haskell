@@ -84,6 +84,10 @@ simplify (Opt re)
 simplify re
   = re
 
+-- A custom helper
+transStarts :: [Transition] -> [State]
+transStarts = map (\(s, _, _) -> s)
+
 --------------------------------------------------------
 -- Part II
 
@@ -136,7 +140,8 @@ make (Seq re re') m n k = ((k, k + 1, Eps) : trans ++ trans', k'')
     (trans', k'') = make re' (k + 1) n k'
 make (Alt re re') m n k = (bases ++ trans ++ trans', k'')
   where
-    bases         = [(m, k, Eps), (k + 1, n, Eps), (m, k + 2, Eps), (k + 3, n, Eps)]
+    bases         = [ (m, k, Eps), (k + 1, n, Eps)
+                    , (m, k + 2, Eps), (k + 3, n, Eps) ]
     (trans, k')   = make re k (k + 1) (k + 4)
     (trans', k'') = make re' (k + 2) (k + 3) k'
 make (Rep re) m n k     = (bases ++ trans, k')
@@ -170,27 +175,30 @@ groupTransitions trans = M.assocs $ foldl worker initGroups trans
 
 makeDA :: Automaton -> Automaton
 -- Pre: Any cycle in the NDA must include at least one non-Eps transition
-makeDA au@(s, ts, _) = ( states M.! ((\(s, _, _) -> s) <$> initTrans)
+makeDA au@(s, ts, _) = ( states M.! transStarts initTrans
                        , terminals, S.evalState (worker initTrans) M.empty )
   where
-    terminals       = snd <$> filter (\(k, v) -> and [t `elem` k | t <- ts])
+    -- A meta-state is terminal if and only if it contains a terminal state.
+    -- Here, $M.assocs states$ is a list of (meta-state, index) pairs.
+    terminals       = snd <$> filter (\(ms, _) -> and [t `elem` ms | t <- ts])
                                      (M.assocs states)
     initTrans       = getFrontier s au
     (trans, states) = S.runState (worker initTrans) M.empty
+    -- The workhorse to compute the transitions as well as the state indices.
     worker trs      = do
-      let metaState = (\(s, _, _) -> s) <$> trs
-      metaStates <- S.get
+      let metaState = transStarts trs
+      metaStates <- S.get -- Seen meta states
       if metaState `M.member` metaStates
-        then pure []
+        then pure [] -- Already seen, no need to compute
         else do
           S.put $ M.insert metaState (length metaStates + 1) metaStates
           let groups = groupTransitions trs
           curIndex <- S.gets (M.! metaState)
+          -- Collect all subsequent meta-transitions.
           join <$> forM groups \(l, states) -> do
-            let trans        = nub $ concatMap (`getFrontier` au) states
-            result    <- worker trans
-            let newMetaState = (\(s, _, _) -> s) <$> trans
-            newIndex <- S.gets (M.! newMetaState)
+            let newTrs = nub $ concatMap (`getFrontier` au) states
+            result   <- worker newTrs
+            newIndex <- S.gets (M.! transStarts newTrs)
             pure $ (curIndex, newIndex, l) : result
 
 --------------------------------------------------------
