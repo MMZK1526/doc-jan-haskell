@@ -4,6 +4,15 @@
 
 module Year2014.Exam where
 
+-- > This one covers a key concept that will be taught in the second-year
+-- > compiler course. I am surprised that it covers all the way to NDA-DA
+-- > transformation in only three hours, no wonder it is a 3⭐️ test!
+-- >
+-- > I vaguely remembered what I have learned in the compiler course, but it
+-- > still took me quite a while to figure out the last part. A slight
+-- > complication is to index the meta-states (subsets of the original states),
+-- > which I feel I have not done it elegantly enough.
+
 import Data.Maybe
 import Data.List
 
@@ -178,23 +187,23 @@ makeDA :: Automaton -> Automaton
 makeDA au@(s, ts, _) = ( states M.! transStarts initTrans
                        , terminals, S.evalState (worker initTrans) M.empty )
   where
-    -- A meta-state is terminal if and only if it contains a terminal state.
-    -- Here, $M.assocs states$ is a list of (meta-state, index) pairs.
+    -- > A meta-state is terminal if and only if it contains a terminal state.
+    -- > Here, $M.assocs states$ is a list of (meta-state, index) pairs.
     terminals       = snd <$> filter (\(ms, _) -> and [t `elem` ms | t <- ts])
                                      (M.assocs states)
     initTrans       = getFrontier s au
     (trans, states) = S.runState (worker initTrans) M.empty
-    -- The workhorse to compute the transitions as well as the state indices.
+    -- > The workhorse to compute the transitions as well as the state indices.
     worker trs      = do
       let metaState = transStarts trs
-      metaStates <- S.get -- Seen meta states
+      metaStates <- S.get -- > Seen meta states
       if metaState `M.member` metaStates
-        then pure [] -- Already seen, no need to compute
+        then pure [] -- > Already seen, no need to compute
         else do
           S.put $ M.insert metaState (length metaStates + 1) metaStates
           let groups = groupTransitions trs
           curIndex <- S.gets (M.! metaState)
-          -- Collect all subsequent meta-transitions.
+          -- > Collect all subsequent meta-transitions.
           join <$> forM groups \(l, states) -> do
             let newTrs = nub $ concatMap (`getFrontier` au) states
             result   <- worker newTrs
@@ -334,6 +343,7 @@ tester = runTest do
 
 newtype EqAutomaton = EqAutomaton { unEQ :: Automaton }
 
+-- > Equality by isomorphism.
 instance Eq EqAutomaton where
   (==) :: EqAutomaton -> EqAutomaton -> Bool
   (==) a1@(EqAutomaton (s1, ts1, trs1)) a2@(EqAutomaton (s2, ts2, trs2))
