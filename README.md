@@ -4,7 +4,7 @@
 
 This repo contains my solutions to the past-year Imperial College Department of Computing Haskell January Tests. The questions are written by Professor Tony Field and can be found [here](http://wp.doc.ic.ac.uk/ajf/haskell-tests/).
 
-Currently, I have implemented the solutions for the tests since 2015. I will gradually add the solutions for the rest.
+Currently, I have implemented the solutions for the tests since 2014. I will gradually add the solutions for the rest.
 
 These solutions are solely based on my personal responses and by no mean serve as the official solutions to the tests. While it is welcomed to discuss and share the solutions (**don't forget to refer Tony's work!**), I am not responsible for any potential damages (*is that even possible?*) caused by using these solutions.
 
@@ -32,3 +32,4 @@ If there's any issue or doubt on running the solutions, you are more than welcom
 | 2017 | `:m Test Year2017.DC`                                                            |
 | 2016 | `:m Test Year2016.Exam`                                                          |
 | 2015 | `:m Test Year2015.Exam`                                                          |
+| 2014 | `:m Test Year2014.Exam`                                                          |
