@@ -1,0 +1,4 @@
+packages:
+  .
+  src/Year2024/
+tests: True

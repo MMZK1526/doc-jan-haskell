@@ -16,6 +16,8 @@ I have preserved all the original comments in the test. New comments are marked 
 
 Since it is a not-mini compilation of Haskell code, I use cabal to manage the project.
 
+### Tests Before 2024
+
 Run `cabal repl` in the root directory, it will open up a GHCi REPL that already loads the files for the tests. You can then load the modules for each year according to the following table to explore and test the functions. Note that simply running `ghci` and load the modules manually may not work because of the dependencies.
 
 Otherwise if you have not installed `cabal`, you can just copy the solution of any given year into a standalone Haskell file (remember to remove the `Year20XX.` prefix in the imports as well as the `tester` function). It should compile.
@@ -33,3 +35,11 @@ If there's any issue or doubt on running the solutions, you are more than welcom
 | 2016 | `:m Test Year2016.Exam`                                                          |
 | 2015 | `:m Test Year2015.Exam`                                                          |
 | 2014 | `:m Test Year2014.Exam`                                                          |
+
+### Tests Since 2024
+
+The tests since 2024 are presented in a different format. They are now in the form of a cabal package, and each test has its own cabal package. I have copied the original packages into the repo under folders "Year20XX". To interact with them, run `cabal repl` either in the root directory or in the folder of the test you want to explore. Then you can load the modules and test the functions as usual.
+
+## Test Suite
+
+Run `cabal test all` to run the test suites. The test suites before 2024 are made by myself, while later Haskell tests have their own test suites.
