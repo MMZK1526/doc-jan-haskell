@@ -38,7 +38,7 @@ If there's any issue or doubt on running the solutions, you are more than welcom
 
 ### Tests Since 2024
 
-The tests since 2024 are presented in a different format. They are now in the form of a cabal package, and each test has its own cabal package. I have copied the original packages into the repo under folders "Year20XX". To interact with them, run `cabal repl` either in the root directory or in the folder of the test you want to explore. Then you can load the modules and test the functions as usual.
+The tests since 2024 are presented in a different format. They are now in the form of a cabal package, and each test has its own cabal package (written by Jamie Willis). I have copied the original packages into the repo under folders "Year20XX". To interact with them, run `cabal repl` either in the root directory or in the folder of the test you want to explore. Then you can load the modules and test the functions as usual.
 
 ## Test Suite
 
