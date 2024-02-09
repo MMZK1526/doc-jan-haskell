@@ -16,22 +16,19 @@ punctuation
   = "';.,-!?"
 
 cleanUp :: String -> String
-cleanUp 
-  = undefined
+cleanUp = map toLower . filter (`notElem` punctuation)
 
 split2 :: [a] -> [([a], [a])]
-split2 
-  = undefined
+split2 xs = flip splitAt xs <$> [1..(length xs - 1)]
 
 split3 :: [a] -> [([a], [a], [a])]
-split3
-  = undefined
+split3 = concatMap worker . split2
+  where
+    worker (xs, zs) = (xs, [], zs) : [(xs', ys', zs) | (xs', ys') <- split2 zs]
 
 uninsert :: [a] -> [([a], [a])]
-uninsert
-  = undefined
+uninsert = map (\(xs, ys, zs) -> (ys, xs ++ zs)) . split3
 
-{- Uncomment these functions when you have defined the above.
 split2M :: [a] -> [([a], [a])]
 split2M xs
   = sxs ++ [(y, x) | (x, y) <- sxs] 
@@ -43,7 +40,6 @@ split3M xs
   = sxs ++ [(z, y, x) | (x, y, z) <- sxs]
   where
     sxs = split3 xs
--}
 
 ------------------------------------------------------
 -- Part II
