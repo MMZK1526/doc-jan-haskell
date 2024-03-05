@@ -45,11 +45,16 @@ split3M xs
 -- Part II
 
 matches :: String -> ParseTree -> Bool
-matches
-  = undefined
+matches clue (Synonym str)       = clue `elem` synonyms str
+matches clue (Anagram _ str)     = sort clue == sort str
+matches clue (Reversal _ tree)   = matches (reverse clue) tree
+matches clue (Insertion _ t1 t2) = or [ matches c1 t1 && matches c2 t2
+                                      | (c1, c2) <- uninsert clue ]
+matches clue (Charade _ t1 t2)   = or [ matches c1 t1 && matches c2 t2
+                                      | (c1, c2) <- split2 clue ]
 
 evaluate :: Parse -> Int -> [String]
-evaluate 
+evaluate (defs, _, tree) size
   = undefined
 
 ------------------------------------------------------
