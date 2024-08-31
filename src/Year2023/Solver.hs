@@ -55,7 +55,9 @@ matches clue (Charade _ t1 t2)   = or [ matches c1 t1 && matches c2 t2
 
 evaluate :: Parse -> Int -> [String]
 evaluate (defs, _, tree) size
-  = undefined
+  = concatMap (filter isMatch . synonyms) defs
+  where
+    isMatch syn = length syn >= size && matches syn tree
 
 ------------------------------------------------------
 -- Part III
@@ -68,9 +70,9 @@ parseWordplay ws
             parseReversal ws,
             parseInsertion ws,
             parseCharade ws]
-    
+
 parseSynonym :: [String] -> [ParseTree]
-parseSynonym 
+parseSynonym
   = const []
 
 parseAnagram :: [String] -> [ParseTree]
@@ -86,7 +88,7 @@ parseInsertion
   = const []
 
 parseCharade :: [String] -> [ParseTree]
-parseCharade 
+parseCharade
   = const []
 
 -- Given...
@@ -99,7 +101,7 @@ parseClueText
   = undefined
 
 solve :: Clue -> [Solution]
-solve 
+solve
   = undefined
 
 

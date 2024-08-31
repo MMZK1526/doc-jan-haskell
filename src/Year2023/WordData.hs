@@ -1,3 +1,7 @@
+-- > This is needed to access __FILE__, the macro for the path of the current
+-- > source file. See the comment on "thesaurus".
+{-# LANGUAGE CPP #-}
+
 module Year2023.WordData where
 
 import System.IO
@@ -6,6 +10,8 @@ import System.IO.Unsafe
 import qualified Data.Text as Text
 import qualified Data.Text.IO as TextIO
 import qualified Data.Map as Map
+
+import System.FilePath
  
 synonyms :: String -> [String]
 synonyms s
@@ -14,11 +20,15 @@ synonyms s
     lookUp x t
       = fromMaybe [] (Map.lookup x t)
 
+-- > The original skeleton code simply reads from the path "thesaurus.txt".
+-- > However, this no longer works when I incorporate all previous tests into
+-- > this single repo as the directory layout has been altered. Therefore I
+-- > use the macro __FILE__ to always locate the thesaurus file relatively.
 thesaurus :: Map.Map String [String]
 thesaurus
-  = unsafePerformIO $ 
+  = unsafePerformIO $
     do 
-      ls <- fmap Text.lines (TextIO.readFile "thesaurus.txt")
+      ls <- fmap Text.lines (TextIO.readFile $ replaceFileName __FILE__ "thesaurus.txt")
       return (Map.fromList (fmap (readSyns . Text.unpack) ls))
 
 readWord :: String -> String
