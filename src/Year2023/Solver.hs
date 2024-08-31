@@ -12,7 +12,7 @@ import Year2023.Examples
 -- Part I
 
 punctuation :: String
-punctuation 
+punctuation
   = "';.,-!?"
 
 cleanUp :: String -> String
@@ -24,14 +24,14 @@ split2 xs = flip splitAt xs <$> [1..(length xs - 1)]
 split3 :: [a] -> [([a], [a], [a])]
 split3 = concatMap worker . split2
   where
-    worker (xs, zs) = (xs, [], zs) : [(xs', ys', zs) | (xs', ys') <- split2 zs]
+    worker (xs, zs) = (xs, [], zs) : [(xs, ys', zs') | (ys', zs') <- split2 zs]
 
 uninsert :: [a] -> [([a], [a])]
 uninsert = map (\(xs, ys, zs) -> (ys, xs ++ zs)) . split3
 
 split2M :: [a] -> [([a], [a])]
 split2M xs
-  = sxs ++ [(y, x) | (x, y) <- sxs] 
+  = sxs ++ [(y, x) | (x, y) <- sxs]
   where
     sxs = split2 xs
 
