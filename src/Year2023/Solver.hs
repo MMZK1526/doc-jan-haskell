@@ -8,6 +8,8 @@ import Year2023.WordData
 import Year2023.Clues
 import Year2023.Examples
 
+import Control.Monad
+
 ------------------------------------------------------
 -- Part I
 
@@ -72,24 +74,54 @@ parseWordplay ws
             parseCharade ws]
 
 parseSynonym :: [String] -> [ParseTree]
-parseSynonym
-  = const []
+parseSynonym ws = let sentence = unwords ws in case synonyms sentence of
+  [] -> []
+  _  -> [Synonym sentence]
 
 parseAnagram :: [String] -> [ParseTree]
-parseAnagram
-  = const []
+parseAnagram ws = do
+  (ind, args) <- split2M ws
+  guard $ unwords ind `elem` anagramIndicators
+  pure $ Anagram ind (concat args)
 
 parseReversal :: [String] -> [ParseTree]
-parseReversal
-  = const []
+parseReversal ws = do
+  (ind, args) <- split2M ws
+  guard $ unwords ind `elem` insertionIndicators
+  clue        <- parseWordplay ws
+  pure $ Reversal ind clue
 
 parseInsertion :: [String] -> [ParseTree]
-parseInsertion
-  = const []
+parseInsertion ws = standardInsertions <> envelopeInsertions
+  where
+    standardInsertions = do
+      (arg, ind, arg') <- split3 ws
+      guard $ unwords ind `elem` insertionIndicators
+      clue             <- parseWordplay arg
+      clue'            <- parseWordplay arg'
+      pure $ Insertion ind clue clue'
+    envelopeInsertions = do
+      (arg, ind, arg') <- split3 ws
+      guard $ unwords ind `elem` envelopeIndicators
+      clue             <- parseWordplay arg
+      clue'            <- parseWordplay arg'
+      pure $ Insertion ind clue' clue
 
 parseCharade :: [String] -> [ParseTree]
-parseCharade
-  = const []
+parseCharade ws = beforeCharade <> afterCharade
+  where
+    beforeCharade = do
+      (arg, ind, arg') <- split3 ws
+      guard $ unwords ind `elem` beforeIndicators
+      clue             <- parseWordplay arg
+      clue'            <- parseWordplay arg'
+      pure $ Insertion ind clue clue'
+    afterCharade = do
+      (arg, ind, arg') <- split3 ws
+      guard $ unwords ind `elem` afterIndicators
+      clue             <- parseWordplay arg
+      clue'            <- parseWordplay arg'
+      pure $ Insertion ind clue' clue
 
 -- Given...
 parseClue :: Clue -> [Parse]
