@@ -87,8 +87,8 @@ parseAnagram ws = do
 parseReversal :: [String] -> [ParseTree]
 parseReversal ws = do
   (ind, args) <- split2M ws
-  guard $ unwords ind `elem` insertionIndicators
-  clue        <- parseWordplay ws
+  guard $ unwords ind `elem` reversalIndicators
+  clue        <- parseWordplay args
   pure $ Reversal ind clue
 
 parseInsertion :: [String] -> [ParseTree]
@@ -115,13 +115,13 @@ parseCharade ws = beforeCharade <> afterCharade
       guard $ unwords ind `elem` beforeIndicators
       clue             <- parseWordplay arg
       clue'            <- parseWordplay arg'
-      pure $ Insertion ind clue clue'
+      pure $ Charade ind clue clue'
     afterCharade = do
       (arg, ind, arg') <- split3 ws
       guard $ unwords ind `elem` afterIndicators
       clue             <- parseWordplay arg
       clue'            <- parseWordplay arg'
-      pure $ Insertion ind clue' clue
+      pure $ Charade ind clue' clue
 
 -- Given...
 parseClue :: Clue -> [Parse]
@@ -129,8 +129,12 @@ parseClue clue@(s, n)
   = parseClueText (words (cleanUp s))
 
 parseClueText :: [String] -> [Parse]
-parseClueText
-  = undefined
+parseClueText ws = do
+  (def, link, wps) <- split3M ws
+  guard $ unwords link `elem` linkWords
+  guard (not . null . synonyms $ unwords def)
+  clue             <- parseWordplay wps
+  pure (def, link, clue)
 
 solve :: Clue -> [Solution]
 solve
