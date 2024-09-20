@@ -29,7 +29,8 @@ split3 = concatMap worker . split2
     worker (xs, zs) = (xs, [], zs) : [(xs, ys', zs') | (ys', zs') <- split2 zs]
 
 uninsert :: [a] -> [([a], [a])]
-uninsert = map (\(xs, ys, zs) -> (ys, xs ++ zs)) . split3
+uninsert = map (\(xs, ys, zs) -> (ys, xs ++ zs))
+         . filter (\(_, ys, _) -> not (null ys)) . split3
 
 split2M :: [a] -> [([a], [a])]
 split2M xs
@@ -56,10 +57,10 @@ matches clue (Charade _ t1 t2)   = or [ matches c1 t1 && matches c2 t2
                                       | (c1, c2) <- split2 clue ]
 
 evaluate :: Parse -> Int -> [String]
-evaluate (defs, _, tree) size
-  = concatMap (filter isMatch . synonyms) defs
+evaluate (def, _, tree) size
+  = filter isMatch $ synonyms (unwords def)
   where
-    isMatch syn = length syn >= size && matches syn tree
+    isMatch syn = length syn == size && matches syn tree
 
 ------------------------------------------------------
 -- Part III
