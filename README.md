@@ -42,4 +42,6 @@ The tests since 2024 are presented in a different format. They are now in the fo
 
 ## Test Suite
 
-Run `cabal test all` to run the test suites. The test suites before 2024 are made by myself, while later Haskell tests have their own test suites.
+Run `cabal test all` to run the test suites. The test suites before 2024 are made by myself, while later Haskell tests have their own test suites [^1].
+
+[^1]: While the older tests do have test cases, they are not provided in the template files.
