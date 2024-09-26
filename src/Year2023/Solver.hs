@@ -1,16 +1,20 @@
+{-# LANGUAGE BlockArguments #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE TypeApplications #-}
 
 module Year2023.Solver where
 
+import Control.Monad
 import Data.List
 import Data.Char
+import Test
 
 import Year2023.Types
 import Year2023.WordData
 import Year2023.Clues
 import Year2023.Examples
 
-import Control.Monad
 
 ------------------------------------------------------
 -- Part I
@@ -75,7 +79,8 @@ parseWordplay ws
             parseAnagram ws,
             parseReversal ws,
             parseInsertion ws,
-            parseCharade ws]
+            parseCharade ws,
+            parseHiddenWord ws]
 
 parseSynonym :: [String] -> [ParseTree]
 parseSynonym ws = let sentence = unwords ws in case synonyms sentence of
@@ -191,3 +196,77 @@ getSol (_, _, sol) = sol
 showAll
   = mapM_ (showSolutions . solve . (clues !!)) [0..23]
 
+
+---------------------------------------------------------
+-- Test & Helpers
+
+tester :: IO ()
+tester = runTest do
+  let (.==.) :: forall a. (Ord a, Show a) => [a] -> [a] -> Test
+      (.==.) = with sort (==.)
+  let allSolutions =
+        [ ["concern","problem"], ["rotates"], ["redshank"], ["master"], ["edam"]
+        , ["repaid"], ["amnesty"], ["remainder"], ["sustain"], ["loire"]
+        , ["cabin"],["snappy"],["fremantle"],["nasty"], ["rotate"], ["inapt"]
+        , ["kensington"],["defiant"],["speed"], ["ling"], ["edward"], ["hera"]
+        , ["large"], ["tofu"] ]
+  label "Test 'cleanUp'" do
+    cleanUp "half-baked" ==. "halfbaked"
+    cleanUp "That's it!" ==. "thats it"
+    cleanUp "all ok" ==. "all ok"
+  label "Test 'split2'" do
+    split2 ([] @Int) .==. []
+    split2 [1] .==. []
+    split2 [1, 2] .==. [([1], [2])]
+    split2 [1, 2, 3, 4] .==. [([1], [2, 3, 4]), ([1, 2], [3, 4]), ([1, 2, 3], [4])]
+  label "Test 'split3'" do
+    split3 ([] @Int) .==. []
+    split3 [1] .==. []
+    split3 [1, 2] .==. [([1], [], [2])]
+    split3 [1, 2, 3] .==. [([1], [], [2, 3]), ([1], [2], [3]), ([1, 2],[],[3])]
+  label "Test 'uninsert'" do
+    uninsert ([] @Int) .==. []
+    uninsert [1] .==. []
+    uninsert [1, 2, 3] .==. [([2], [1, 3])]
+    uninsert [1, 2, 3, 4] .==. [([2], [1, 3, 4]), ([2, 3], [1, 4]), ([3], [1, 2, 4])]
+  label "Test 'matches'" do
+    forM_ (zip [0..] trees) \(i, tree) ->
+      forM_ (zip [0..] strings) \(j, string) ->
+        matches (fst string) tree ==. i == j
+  label "Test 'evaluate'" do
+    forM_ (zip3 parses enumerations allSolutions) \(p, e, s) ->
+      evaluate p e .==. s
+  label "Test 'parseSynonym'" do
+    parseSynonym ["great"] .==. [Synonym "great"]
+    parseSynonym ["at home"] .==. [Synonym "at home"]
+    parseSynonym ["triangular", "mollusc"] .==. []
+  label "Test 'parseAnagram'" do
+    parseAnagram ["mixed", "bag"] .==. [Anagram ["mixed"] "bag"]
+    parseAnagram ["bag", "mixed"] .==. [Anagram ["mixed"] "bag"]
+    parseAnagram ["changed", "the", "car"] .==. [Anagram ["changed"] "thecar"]
+    parseAnagram ["fruit", "cake"] .==. []
+  label "Test 'parseReversal'" do
+    parseReversal ["go", "backwards"] .==. [Reversal ["backwards"] (Synonym "go")]
+    parseReversal ["backwards", "go"] .==. [Reversal ["backwards"] (Synonym "go")]
+    parseReversal ["mixed", "bag"] .==. []
+    parseReversal ["back", "at", "home"] .==. [ Reversal ["back"] (Synonym "at home")
+                                              , Reversal ["back"] (Charade [] (Synonym "at") (Synonym "home")) ]
+  label "Test 'parseInsertion'" do
+    parseInsertion ["back", "in", "business"] .==. [Insertion ["in"] (Synonym "back") (Synonym "business")]
+    parseInsertion ["work", "around", "town"] .==. [Insertion ["around"] (Synonym "town") (Synonym "work")]
+    parseInsertion ["back", "pain"] .==. []
+    parseInsertion ["was", "back", "in", "time"] .==. [ Insertion ["in"] (Reversal ["back"] (Synonym "was")) (Synonym "time")
+                                                      , Insertion ["in"] (Charade [] (Synonym "was") (Synonym "back")) (Synonym "time") ]
+  label "Test 'parseCharade'" do
+    parseCharade ["stop", "go"] .==. [Charade [] (Synonym "stop") (Synonym "go")]
+    parseCharade ["stop", "and", "go"] .==. [ Charade [] (Synonym "stop") (Charade [] (Synonym "and") (Synonym "go"))
+                                            , Charade [] (Charade [] (Synonym "stop") (Synonym "and")) (Synonym "go")
+                                            , Charade ["and"] (Synonym "stop") (Synonym "go") ]
+    parseCharade ["go", "after", "stop"] .==. [ Charade [] (Synonym "go") (Charade [] (Synonym "after") (Synonym "stop"))
+                                              , Charade [] (Charade [] (Synonym "go") (Synonym "after")) (Synonym "stop")
+                                              , Charade ["after"] (Synonym "stop") (Synonym "go")]
+  label "Test 'parseHiddenWord" do
+    parseHiddenWord ["hiding", "in", "fitted", "wardrobe"] .==. [HiddenWord ["hiding", "in"] "edward"]
+  label "Test 'solve'" do
+    forM_ (zip (solveAll 24) allSolutions) \(exp, act) -> do
+      exp .==. act
