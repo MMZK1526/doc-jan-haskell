@@ -1,3 +1,5 @@
+{-# LANGUAGE TupleSections #-}
+
 module Year2023.Solver where
 
 import Data.List
@@ -55,6 +57,7 @@ matches clue (Insertion _ t1 t2) = or [ matches c1 t1 && matches c2 t2
                                       | (c1, c2) <- uninsert clue ]
 matches clue (Charade _ t1 t2)   = or [ matches c1 t1 && matches c2 t2
                                       | (c1, c2) <- split2 clue ]
+matches clue (HiddenWord _ str)  = clue == str
 
 evaluate :: Parse -> Int -> [String]
 evaluate (def, _, tree) size
@@ -138,8 +141,38 @@ parseClueText ws = do
   pure (def, link, clue)
 
 solve :: Clue -> [Solution]
-solve
-  = undefined
+solve clue@(s, n) = concatMap buildSolution (parseClue clue)
+  where
+    buildSolution p = (clue, p,) <$> evaluate p n
+    parseTrees = parseClue clue
+
+------------------------------------------------------
+-- Part IV
+
+parseHiddenWord :: [String] -> [ParseTree]
+parseHiddenWord ws = do
+  (ind, args) <- split2 ws
+  guard $ unwords ind `elem` hiddenWordIndicators
+  hiddenWord  <- extractHiddenWords args
+  guard (not . null $ synonyms hiddenWord)
+  pure $ HiddenWord ind hiddenWord
+
+trueSuffixes :: [a] -> [[a]]
+truePrefixes :: [a] -> [[a]]
+trueSuffixes []       = []
+trueSuffixes [_]      = []
+trueSuffixes (x : xs) = xs : trueSuffixes xs
+truePrefixes xs       = reverse <$> trueSuffixes (reverse xs)
+
+extractHiddenWords :: [[a]] -> [[a]]
+extractHiddenWords []  = []
+extractHiddenWords [w] = concatMap trueSuffixes (truePrefixes w)
+extractHiddenWords [w, w'] = liftM2 (<>) (trueSuffixes w) (truePrefixes w')
+extractHiddenWords (w : ws) = do
+  let (ws', [w']) = splitAt (length ws - 1) ws
+  start <- trueSuffixes w
+  end   <- truePrefixes w'
+  pure $ start <> concat ws' <> end
 
 
 ------------------------------------------------------
