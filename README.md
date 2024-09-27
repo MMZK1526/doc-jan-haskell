@@ -24,17 +24,18 @@ Otherwise if you have not installed `cabal`, you can just copy the solution of a
 
 If there's any issue or doubt on running the solutions, you are more than welcomed to drop an issue or contact me directly, and I will do my best to assist.
 
-| Year | Module Name                                                                      |
-| ---- | -------------------------------------------------------------------------------- |
-| 2022 | `:m Test Year2022.Examples Year2022.SC Year2022.Types`                           |
-| 2021 | `:m Test Year2021.Alloc Year2021.Examples Year2021.Types`                        |
-| 2020 | `:m Test Year2020.Examples Year2020.HashFunctions Year2020.Tries Year2020.Types` |
-| 2019 | `:m Test Year2019.SOL Year2019.TestData Year2019.Types`                          |
-| 2018 | `:m Test Year2018.CP`                                                            |
-| 2017 | `:m Test Year2017.DC`                                                            |
-| 2016 | `:m Test Year2016.Exam`                                                          |
-| 2015 | `:m Test Year2015.Exam`                                                          |
-| 2014 | `:m Test Year2014.Exam`                                                          |
+| Year | Module Name                                                                                |
+| ---- | ------------------------------------------------------------------------------------------ |
+| 2023 | `:m Test Year2022.Clues Year2022.Examples Year2022.Solve Year2022.Types Year2022.WordData` |
+| 2022 | `:m Test Year2022.Examples Year2022.SC Year2022.Types`                                     |
+| 2021 | `:m Test Year2021.Alloc Year2021.Examples Year2021.Types`                                  |
+| 2020 | `:m Test Year2020.Examples Year2020.HashFunctions Year2020.Tries Year2020.Types`           |
+| 2019 | `:m Test Year2019.SOL Year2019.TestData Year2019.Types`                                    |
+| 2018 | `:m Test Year2018.CP`                                                                      |
+| 2017 | `:m Test Year2017.DC`                                                                      |
+| 2016 | `:m Test Year2016.Exam`                                                                    |
+| 2015 | `:m Test Year2015.Exam`                                                                    |
+| 2014 | `:m Test Year2014.Exam`                                                                    |
 
 ### Tests Since 2024
 

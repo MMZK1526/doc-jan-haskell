@@ -3,6 +3,19 @@
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeApplications #-}
 
+-- > While the official "level of difficulty" for this test is only one-star,
+-- > I actually spent the most time on this test, although it was partially due
+-- > to my lack of availability to properly work on this.
+-- >
+-- > The algorithm is pretty straightforward, even though cryptic clues are a
+-- > foreign concept for me. However, due to an error in the original test suite
+-- > (not available on the website; from which the test suite in this file is
+-- > based upon), I spent days on a bug that never exists, which to a certain
+-- > extent dampened my zeal to complete this challenge.
+-- >
+-- > Note that I used a lot of do-notations in place for list comprehensions
+-- > since the latter form would be too long.
+
 module Year2023.Solver where
 
 import Control.Monad
@@ -93,6 +106,8 @@ parseAnagram ws = do
   guard $ unwords ind `elem` anagramIndicators
   pure $ Anagram ind (concat args)
 
+-- > `do { x <- xs; guard (p x); pure (f x)}` is equivalent to
+-- > `[f x | x <- xs, p x]`.
 parseReversal :: [String] -> [ParseTree]
 parseReversal ws = do
   (ind, args) <- split2M ws
@@ -101,36 +116,36 @@ parseReversal ws = do
   pure $ Reversal ind clue
 
 parseInsertion :: [String] -> [ParseTree]
-parseInsertion ws = standardInsertions <> envelopeInsertions
-  where
-    standardInsertions = do
-      (arg, ind, arg') <- split3 ws
-      guard $ unwords ind `elem` insertionIndicators
-      clue             <- parseWordplay arg
-      clue'            <- parseWordplay arg'
-      pure $ Insertion ind clue clue'
-    envelopeInsertions = do
-      (arg, ind, arg') <- split3 ws
-      guard $ unwords ind `elem` envelopeIndicators
-      clue             <- parseWordplay arg
-      clue'            <- parseWordplay arg'
-      pure $ Insertion ind clue' clue
+parseInsertion ws = do
+  (arg, ind, arg') <- split3 ws
+  -- > try both flavours of insertion.
+  let standardInsertions = do
+        guard $ unwords ind `elem` insertionIndicators
+        clue             <- parseWordplay arg
+        clue'            <- parseWordplay arg'
+        pure $ Insertion ind clue clue'
+      envelopeInsertions = do
+        guard $ unwords ind `elem` envelopeIndicators
+        clue             <- parseWordplay arg
+        clue'            <- parseWordplay arg'
+        pure $ Insertion ind clue' clue
+  standardInsertions <> envelopeInsertions
 
 parseCharade :: [String] -> [ParseTree]
-parseCharade ws = beforeCharade <> afterCharade
-  where
-    beforeCharade = do
-      (arg, ind, arg') <- split3 ws
-      guard $ unwords ind `elem` beforeIndicators
-      clue             <- parseWordplay arg
-      clue'            <- parseWordplay arg'
-      pure $ Charade ind clue clue'
-    afterCharade = do
-      (arg, ind, arg') <- split3 ws
-      guard $ unwords ind `elem` afterIndicators
-      clue             <- parseWordplay arg
-      clue'            <- parseWordplay arg'
-      pure $ Charade ind clue' clue
+parseCharade ws = do
+  (arg, ind, arg') <- split3 ws
+  -- > try both flavours of charade.
+  let beforeCharade = do
+        guard $ unwords ind `elem` beforeIndicators
+        clue             <- parseWordplay arg
+        clue'            <- parseWordplay arg'
+        pure $ Charade ind clue clue'
+      afterCharade = do
+        guard $ unwords ind `elem` afterIndicators
+        clue             <- parseWordplay arg
+        clue'            <- parseWordplay arg'
+        pure $ Charade ind clue' clue
+  beforeCharade <> afterCharade
 
 -- Given...
 parseClue :: Clue -> [Parse]
@@ -162,6 +177,7 @@ parseHiddenWord ws = do
   guard (not . null $ synonyms hiddenWord)
   pure $ HiddenWord ind hiddenWord
 
+-- > Get the non-empty, non-full suffixes/prefixes of a list.
 trueSuffixes :: [a] -> [[a]]
 truePrefixes :: [a] -> [[a]]
 trueSuffixes []       = []
@@ -169,6 +185,10 @@ trueSuffixes [_]      = []
 trueSuffixes (x : xs) = xs : trueSuffixes xs
 truePrefixes xs       = reverse <$> trueSuffixes (reverse xs)
 
+-- > Empty case: [];
+-- > Singleton case: get true suffixes of true prefixes;
+-- > Two-element: concat true suffixes of word 1 with true prefixes of word 2;
+-- > Multi-element: similar to above but always require the entire middle words.
 extractHiddenWords :: [[a]] -> [[a]]
 extractHiddenWords []  = []
 extractHiddenWords [w] = concatMap trueSuffixes (truePrefixes w)
