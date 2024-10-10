@@ -15,7 +15,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        ghc: [9.4.7]
+        ghc: [9.4.8]
     steps:
       - uses: actions/checkout@v3
       - uses: haskell-actions/setup@v2
@@ -27,7 +27,7 @@ jobs:
         env:
           cache-name: cache-cabal
         with:
-          path: ~/.cabal
+          path: $HOME/.cabal
           key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/*.cabal') }}-${{ hashFiles('**/cabal.project') }}
           restore-keys: |
             ${{ runner.os }}-build-${{ env.cache-name }}-
