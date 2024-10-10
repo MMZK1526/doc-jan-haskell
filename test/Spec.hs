@@ -9,6 +9,7 @@ import qualified Year2019.SOL as Y2019
 import qualified Year2020.Tries as Y2020
 import qualified Year2021.Alloc as Y2021
 import qualified Year2022.SC as Y2022
+import qualified Year2023.Solver as Y2023
 
 main :: IO ()
 main = do
@@ -36,7 +37,10 @@ main = do
   putStrLn "Year 2021 Tests: "
   Y2021.tester
   putStrLn "Year 2021 Tests Done!"
-  putStrLn "Year 2022Tests: "
+  putStrLn "Year 2022 Tests: "
   Y2022.tester
   putStrLn "Year 2022 Tests Done!"
+  putStrLn "Year 2023 Tests: "
+  Y2023.tester
+  putStrLn "Year 2023 Tests Done!"
   putStrLn "All Tests Done!"
