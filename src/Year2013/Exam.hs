@@ -9,20 +9,20 @@ data BinTree a = Node a Int (BinHeap a)
 -- PART I
 
 key :: BinTree a -> a
-key
-  = undefined
+key (Node a _ _) = a
 
 rank :: BinTree a -> Int
-rank
-  = undefined
+rank (Node _ r _) = r
 
 children :: BinTree a -> [BinTree a]
-children
-  = undefined
+children (Node _ _ h) = h
 
 combineTrees :: Ord a => BinTree a -> BinTree a -> BinTree a
-combineTrees 
-  = undefined
+combineTrees t1@(Node a1 r1 h1) t2@(Node a2 r2 h2)
+  | a1 < a2   = Node a1 r (t2 : h1)
+  | otherwise = Node a2 r (t1 : h2)
+  where
+    r = 1 + max r1 r2
 
 --------------------------------------------------------------
 -- PART II
