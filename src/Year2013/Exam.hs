@@ -28,8 +28,7 @@ combineTrees t1@(Node a1 r1 h1) t2@(Node a2 r2 h2)
 -- PART II
 
 extractMin :: Ord a => BinHeap a -> a
-extractMin 
-  = undefined
+extractMin = minimum . map key
 
 mergeHeaps :: Ord a => BinHeap a -> BinHeap a -> BinHeap a
 mergeHeaps 
