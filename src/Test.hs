@@ -52,4 +52,4 @@ label name test = do
   put name'
 
 with :: (a -> b) -> (b -> b -> c) -> a -> a -> c
-with f g x y = g (f x) (f y)
+with = flip =<< ((flip . ((.) .)) .) . flip (.)
