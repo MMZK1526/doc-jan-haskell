@@ -31,8 +31,13 @@ extractMin :: Ord a => BinHeap a -> a
 extractMin = minimum . map key
 
 mergeHeaps :: Ord a => BinHeap a -> BinHeap a -> BinHeap a
-mergeHeaps 
-  = undefined
+mergeHeaps h1@(t1 : ts1) h2@(t2 : ts2)
+  | r1 < r2   = t1 : mergeHeaps ts1 h2
+  | r1 > r2   = t2 : mergeHeaps h1 ts2
+  | otherwise = mergeHeaps [combineTrees t1 t2] (mergeHeaps ts1 ts2)
+  where
+    (r1, r2) = (rank t1, rank t2)
+mergeHeaps h1 h2 = h1 <> h2 -- > To reach here, one of the heaps must be empty
 
 insert :: Ord a => a -> BinHeap a -> BinHeap a
 insert 
