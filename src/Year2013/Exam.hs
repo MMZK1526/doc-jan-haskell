@@ -1,5 +1,8 @@
 module Year2013.Exam where
 
+import Data.Foldable (minimumBy)
+import Data.Function (on)
+
 type BinHeap a = [BinTree a]
 
 data BinTree a = Node a Int (BinHeap a)
@@ -31,7 +34,7 @@ extractMin :: Ord a => BinHeap a -> a
 extractMin = minimum . map key
 
 mergeHeaps :: Ord a => BinHeap a -> BinHeap a -> BinHeap a
-mergeHeaps h1@(t1 : ts1) h2@(t2 : ts2)
+mergeHeaps h1@(t1:ts1) h2@(t2:ts2)
   | r1 < r2   = t1 : mergeHeaps ts1 h2
   | r1 > r2   = t2 : mergeHeaps h1 ts2
   | otherwise = mergeHeaps [combineTrees t1 t2] (mergeHeaps ts1 ts2)
@@ -40,24 +43,32 @@ mergeHeaps h1@(t1 : ts1) h2@(t2 : ts2)
 mergeHeaps h1 h2 = h1 <> h2 -- > To reach here, one of the heaps must be empty
 
 insert :: Ord a => a -> BinHeap a -> BinHeap a
-insert 
-  = undefined
+insert e = mergeHeaps [Node e 0 []]
 
 deleteMin :: Ord a => BinHeap a -> BinHeap a
-deleteMin 
-  = undefined
+deleteMin [] = []
+deleteMin h  = mergeHeaps ts (reverse ts')
+  where
+    (Node _ _ ts', ts) = removeMin h
 
+-- > this function is mentioned in the speç, and we don't use it
 remove :: Eq a => a -> BinHeap a -> BinHeap a
 remove
   = undefined
 
 removeMin :: Ord a => BinHeap a -> (BinTree a, BinHeap a)
-removeMin
-  = undefined
+removeMin (t:ts) = go t [] ts
+  where
+    go t acc [] = (t, reverse acc)
+    go t acc (t':ts')
+      | key t <= key t' = go t (t':acc) ts'
+      | otherwise       = go t' (t:acc) ts'
 
 binSort :: Ord a => [a] -> [a]
-binSort 
-  = undefined
+binSort = go . foldr insert []
+  where
+    go [] = []
+    go h  = extractMin h : go (deleteMin h)
 
 --------------------------------------------------------------
 -- PART III
