@@ -88,8 +88,9 @@ binarySum :: [Int] -> [Int] -> [Int]
 binarySum xs ys
   | lenXs < lenYs = binarySum (replicate (lenYs - lenXs) 0 ++ xs) ys
   | lenXs > lenYs = binarySum xs (replicate (lenXs - lenYs) 0 ++ ys)
-  | otherwise     = fromEnum <$> fst (go (toEnum <$> xs) (toEnum <$> ys) False)
+  | otherwise     = fromEnum carry : map fromEnum res
   where
+    (res, carry)       = go (toEnum <$> xs) (toEnum <$> ys) False
     (lenXs, lenYs)     = (length xs, length ys)
     go [] [] c         = ([], c)
     go (x:xs) (y:ys) c = let (s, c')  = go xs ys c
