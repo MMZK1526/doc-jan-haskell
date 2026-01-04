@@ -1,7 +1,11 @@
+{-# LANGUAGE BlockArguments #-}
+{-# LANGUAGE TypeApplications #-}
+
 module Year2013.Exam where
 
 import Data.Foldable (minimumBy)
 import Data.Function (on)
+import Test
 
 type BinHeap a = [BinTree a]
 
@@ -11,6 +15,7 @@ data BinTree a = Node a Int (BinHeap a)
 --------------------------------------------------------------
 -- PART I
 
+-- > In the speç it's called "value", but here it's called "key"
 key :: BinTree a -> a
 key (Node a _ _) = a
 
@@ -155,4 +160,31 @@ h7 = [Node 4 3 [Node 4 2 [Node 12 1 [Node 16 0 []],
                 Node 6 1 [Node 8 0 []],
                 Node 10 0 []]]
 
+---------------------------------------------------------
+-- Tests
 
+tester :: IO ()
+tester = runTest do
+  label "Test 'key'" do
+    key t4 ==. 2
+  label "Test 'rank'" do
+    rank t7 ==. 3
+  label "Test 'children'" do
+    children t2 ==. [Node 5 0 []]
+  label "Test 'combineTrees'" do
+    combineTrees t5 t6 ==. t7
+  label "Test 'extractMin'" do
+    extractMin h3 ==. 1
+  label "Test 'mergeHeaps'" do
+    mergeHeaps h4 h5 ==. h6
+  label "Test 'insert'" do
+    insert 7 [t1] ==. [Node 4 1 [Node 7 0 []]]
+  label "Test 'deleteMin'" do
+    deleteMin h6 ==. h7
+  label "Test 'binSort'" do
+    binSort @Int [] ==. []
+    binSort [1, 4, 2, 8, 5, 7, 6] ==. [1, 2, 4, 5, 6, 7, 8]
+  label "Test 'toBinary'" do
+    toBinary h2 ==. [1, 1, 0, 0]
+  label "Test 'binarySum'" do
+    binarySum (toBinary h4) (toBinary h5) ==. [1, 0, 0, 1]
