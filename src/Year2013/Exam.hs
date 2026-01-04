@@ -3,6 +3,15 @@
 
 module Year2013.Exam where
 
+-- > This test took me quite some months not because of difficulty but for I was
+-- > kind of overloaded by life : /
+-- >
+-- > In terms of the content, it's mostly straightforward. My only doubt is the
+-- > "binarySum" in Part 3 - the speç asks for not using "reverse", which I did
+-- > not, however, I feel the use of "length" is already not elegant and it is
+-- > effectively a second pass. However, I could not fathom a way to truly pass
+-- > the lists just once given that the lists may differ in length.
+
 import Data.Foldable (minimumBy)
 import Data.Function (on)
 import Test
