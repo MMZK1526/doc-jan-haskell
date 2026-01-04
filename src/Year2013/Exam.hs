@@ -74,12 +74,23 @@ binSort = go . foldr insert []
 -- PART III
 
 toBinary :: BinHeap a -> [Int]
-toBinary
-  = undefined
+toBinary h = go 0 (map rank h)
+  where
+    go _ []     = []
+    go d (r:rs) = go (r + 1) rs ++ 1 : replicate (r - d) 0
 
 binarySum :: [Int] -> [Int] -> [Int]
-binarySum
-  = undefined
+binarySum xs ys
+  | lenXs < lenYs = binarySum (replicate (lenYs - lenXs) 0 ++ xs) ys
+  | lenXs > lenYs = binarySum xs (replicate (lenXs - lenYs) 0 ++ ys)
+  | otherwise     = fromEnum <$> fst (go (toEnum <$> xs) (toEnum <$> ys) False)
+  where
+    (lenXs, lenYs)     = (length xs, length ys)
+    go [] [] c         = ([], c)
+    go (x:xs) (y:ys) c = let (s, c')  = go xs ys c
+                             (r, c'') = fullAdder x y c'
+                          in (r : s, c'')
+    fullAdder x y c    = let xor = x /= y in (xor /= c, x && y || c && xor)
 
 ------------------------------------------------------
 -- Some sample trees...
